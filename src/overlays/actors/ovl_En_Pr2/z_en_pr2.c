@@ -227,7 +227,7 @@ s32 EnPr2_IsOnScreen(EnPr2* this, PlayState* play) {
         return false;
     }
 
-    if (!(player->stateFlags1 & PLAYER_STATE1_8000000)) {
+    if (!(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
         // player is NOT swimming?
         return false;
     } else {
@@ -382,7 +382,7 @@ void EnPr2_Idle(EnPr2* this, PlayState* play) {
                     deltaZ = player->actor.world.pos.z - this->newHome.z;
                     sqrtXZ = sqrtf(SQ(deltaX) + SQ(deltaZ));
 
-                    if (swimmingStraight && (player->stateFlags1 & PLAYER_STATE1_8000000) &&
+                    if (swimmingStraight && (player->stateFlags1 & PLAYER_STATE1_IN_WATER) &&
                         (sqrtXZ < this->agroDistance)) {
                         changingCourse = true;
                         EnPr2_SetupAttack(this, play);
@@ -480,7 +480,7 @@ void EnPr2_Attack(EnPr2* this, PlayState* play) {
     WaterBox* waterBox;
 
     Math_ApproachF(&this->scale, 0.02f, 0.1f, 0.005f);
-    if ((this->mainTimer == 0) || !(player->stateFlags1 & PLAYER_STATE1_8000000) || (this->type == PR2_TYPE_PASSIVE)) {
+    if ((this->mainTimer == 0) || !(player->stateFlags1 & PLAYER_STATE1_IN_WATER) || (this->type == PR2_TYPE_PASSIVE)) {
         EnPr2_SetupIdle(this);
         return;
     }

@@ -363,7 +363,7 @@ s32 Camera_IsSwimming(Camera* camera) {
             return 999;
         } else {
             // Swimming as Human or Fierce Deity
-            return ((Player*)focalActor)->stateFlags1 & PLAYER_STATE1_8000000;
+            return ((Player*)focalActor)->stateFlags1 & PLAYER_STATE1_IN_WATER;
         }
     } else {
         // Camera not focused on player

@@ -156,7 +156,7 @@ void DoorAna_WaitOpen(DoorAna* this, PlayState* play) {
 
             DoorAna_SetupAction(this, DoorAna_GrabLink);
 
-        } else if (!Play_InCsMode(play) && !(player->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_800000)) &&
+        } else if (!Play_InCsMode(play) && !(player->stateFlags1 & (PLAYER_STATE1_IN_WATER | PLAYER_STATE1_800000)) &&
                    (this->actor.xzDistToPlayer <= 20.0f) && (this->actor.playerHeightRel >= -50.0f) &&
                    (this->actor.playerHeightRel <= 15.0f)) {
             player->stateFlags1 |= PLAYER_STATE1_80000000;

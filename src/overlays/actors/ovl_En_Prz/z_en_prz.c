@@ -247,7 +247,7 @@ void func_80A763E8(EnPrz* this, PlayState* play) {
         return;
     }
 
-    if ((player->stateFlags1 & PLAYER_STATE1_8000000) && (this->unk_1F2 == 0)) {
+    if ((player->stateFlags1 & PLAYER_STATE1_IN_WATER) && (this->unk_1F2 == 0)) {
         func_80A76748(this);
         return;
     }
@@ -305,7 +305,7 @@ void func_80A76634(EnPrz* this, PlayState* play) {
         if (func_80A762C0(this, play) != 0) {
             this->unk_1E4 += 0x1500;
             this->unk_1E4 += TRUNCF_BINANG(Rand_ZeroFloat(5000.0f));
-        } else if ((player->stateFlags1 & PLAYER_STATE1_8000000) && (player->actor.floorHeight < 30.0f)) {
+        } else if ((player->stateFlags1 & PLAYER_STATE1_IN_WATER) && (player->actor.floorHeight < 30.0f)) {
             this->actionFunc = func_80A763E8;
         } else {
             this->unk_1EE = 10;
@@ -339,7 +339,7 @@ void func_80A767A8(EnPrz* this, PlayState* play) {
     distXZ = sqrtf(SQ(player->actor.world.pos.x - this->actor.parent->home.pos.x) +
                    SQ(player->actor.world.pos.z - this->actor.parent->home.pos.z));
 
-    if (!(player->stateFlags1 & PLAYER_STATE1_8000000) || (pr->unk_2C8 < distXZ)) {
+    if (!(player->stateFlags1 & PLAYER_STATE1_IN_WATER) || (pr->unk_2C8 < distXZ)) {
         this->unk_1F2 = 100;
         this->skelAnime.playSpeed = 1.0f;
         func_80A76388(this);

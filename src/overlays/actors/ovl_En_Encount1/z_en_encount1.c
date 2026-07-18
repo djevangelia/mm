@@ -129,7 +129,7 @@ void EnEncount1_SpawnActor(EnEncount1* this, PlayState* play) {
             spawnPos.y = player->actor.world.pos.y - Rand_ZeroFloat(20.0f);
             spawnPos.z = player->actor.world.pos.z + (Math_CosS(rotY) * scale) + Rand_CenteredFloat(40.0f);
             floorHeight = BgCheck_EntityRaycastFloor5(&play->colCtx, &floorPoly, &bgId, &this->actor, &spawnPos);
-            if (!(player->stateFlags1 & PLAYER_STATE1_8000000) || (floorHeight <= BGCHECK_Y_MIN) ||
+            if (!(player->stateFlags1 & PLAYER_STATE1_IN_WATER) || (floorHeight <= BGCHECK_Y_MIN) ||
                 (player->actor.depthInWater < floorHeight)) {
                 return;
             }

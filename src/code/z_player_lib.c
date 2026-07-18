@@ -600,7 +600,7 @@ void func_80123140(PlayState* play, Player* player) {
 
     currentBoots = player->currentBoots;
     if (currentBoots >= PLAYER_BOOTS_ZORA_UNDERWATER) {
-        if (player->stateFlags1 & PLAYER_STATE1_8000000) {
+        if (player->stateFlags1 & PLAYER_STATE1_IN_WATER) {
             currentBoots++;
         }
         if (player->transformation == PLAYER_FORM_GORON) {
@@ -707,8 +707,8 @@ bool func_801234D4(PlayState* play) {
     Player* player = GET_PLAYER(play);
 
     return (player->stateFlags2 & PLAYER_STATE2_8) || (player->actor.speed != 0.0f) ||
-           ((player->transformation != PLAYER_FORM_ZORA) && (player->stateFlags1 & PLAYER_STATE1_8000000)) ||
-           ((player->transformation == PLAYER_FORM_ZORA) && (player->stateFlags1 & PLAYER_STATE1_8000000) &&
+           ((player->transformation != PLAYER_FORM_ZORA) && (player->stateFlags1 & PLAYER_STATE1_IN_WATER)) ||
+           ((player->transformation == PLAYER_FORM_ZORA) && (player->stateFlags1 & PLAYER_STATE1_IN_WATER) &&
             (!(player->actor.bgCheckFlags & BGCHECKFLAG_GROUND) ||
              (player->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER)));
 }
@@ -1522,7 +1522,7 @@ void Player_ReleaseLockOn(Player* player) {
  */
 void Player_ClearZTargeting(Player* player) {
     if ((player->actor.bgCheckFlags & BGCHECKFLAG_GROUND) ||
-        (player->stateFlags1 & (PLAYER_STATE1_200000 | PLAYER_STATE1_800000 | PLAYER_STATE1_8000000)) ||
+        (player->stateFlags1 & (PLAYER_STATE1_200000 | PLAYER_STATE1_800000 | PLAYER_STATE1_IN_WATER)) ||
         (!(player->stateFlags1 & (PLAYER_STATE1_40000 | PLAYER_STATE1_80000)) &&
          ((player->actor.world.pos.y - player->actor.floorHeight) < 100.0f))) {
         player->stateFlags1 &=
@@ -1707,7 +1707,7 @@ PlayerSword Player_SwordFromIA(Player* player, PlayerItemAction itemAction) {
 }
 
 bool func_801242B4(Player* player) {
-    return (player->stateFlags1 & PLAYER_STATE1_8000000) && (player->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER);
+    return (player->stateFlags1 & PLAYER_STATE1_IN_WATER) && (player->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER);
 }
 
 s32 Player_GetEnvironmentalHazard(PlayState* play) {
@@ -1719,7 +1719,7 @@ s32 Player_GetEnvironmentalHazard(PlayState* play) {
         envHazard = PLAYER_ENV_HAZARD_HOTROOM - 1;
     } else if ((player->transformation != PLAYER_FORM_ZORA) && (player->underwaterTimer > 80)) {
         envHazard = PLAYER_ENV_HAZARD_UNDERWATER_FREE - 1;
-    } else if (player->stateFlags1 & PLAYER_STATE1_8000000) {
+    } else if (player->stateFlags1 & PLAYER_STATE1_IN_WATER) {
         if ((player->transformation == PLAYER_FORM_ZORA) && (player->currentBoots >= PLAYER_BOOTS_ZORA_UNDERWATER) &&
             (player->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
             envHazard = PLAYER_ENV_HAZARD_UNDERWATER_FLOOR - 1;
@@ -2545,7 +2545,7 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                 leftHandDLists = &gPlayerLeftHandOpenDLs[D_801F59E0];
                 sPlayerLeftHandType = PLAYER_MODELTYPE_LH_OPEN;
             } else if ((player->leftHandType == PLAYER_MODELTYPE_LH_OPEN) && (player->actor.speed > 2.0f) &&
-                       !(player->stateFlags1 & PLAYER_STATE1_8000000)) {
+                       !(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
                 leftHandDLists = &gPlayerLeftHandClosedDLs[D_801F59E0];
                 sPlayerLeftHandType = PLAYER_MODELTYPE_LH_CLOSED;
             } else if ((player->leftHandType == PLAYER_MODELTYPE_LH_ONE_HAND_SWORD) &&
@@ -2605,7 +2605,7 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                         }
                     }
                 } else if ((player->rightHandType == PLAYER_MODELTYPE_RH_OPEN) && (player->actor.speed > 2.0f) &&
-                           !(player->stateFlags1 & PLAYER_STATE1_8000000)) {
+                           !(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
                     rightHandDLists = &gPlayerRightHandClosedDLs[D_801F59E0];
                     sPlayerRightHandType = PLAYER_MODELTYPE_RH_CLOSED;
                 } else {
@@ -3101,7 +3101,7 @@ void func_80126BD0(PlayState* play, Player* player, s32 arg2) {
         Matrix_MultVec3f(&D_801C0ADC[arg2], &sp4C);
 
         if (func_80126440(play, NULL, &player->meleeWeaponInfo[arg2], &sp58, &sp4C) &&
-            (player->stateFlags1 & PLAYER_STATE1_8000000)) {
+            (player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
             EffectBlure_AddVertex(Effect_GetByIndex(player->meleeWeaponEffectIndex[arg2]),
                                   &player->meleeWeaponInfo[arg2].tip, &player->meleeWeaponInfo[arg2].base);
         }

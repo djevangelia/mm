@@ -465,7 +465,7 @@ void EnDoor_Idle(EnDoor* this, PlayState* play) {
 
         this->actionFunc = EnDoor_Open;
         Animation_PlayOnceSetSpeed(&this->knobDoor.skelAnime, sAnimations[this->knobDoor.animIndex],
-                                   (player->stateFlags1 & PLAYER_STATE1_8000000) ? 0.75f : 1.5f);
+                                   (player->stateFlags1 & PLAYER_STATE1_IN_WATER) ? 0.75f : 1.5f);
 
         // If this is a locked door then handle small key counts, sfx and switch flag
         if (this->lockTimer != 0) {
