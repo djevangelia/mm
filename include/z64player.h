@@ -1022,7 +1022,7 @@ typedef enum PlayerCueId {
 // 
 #define PLAYER_STATE2_200000     (1 << 21)
 // 
-#define PLAYER_STATE2_400000     (1 << 22)
+#define PLAYER_STATE2_CAN_HORSE_DISMOUNT     (1 << 22)
 // 
 #define PLAYER_STATE2_800000     (1 << 23)
 // 
