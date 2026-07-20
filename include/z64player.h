@@ -1273,6 +1273,8 @@ typedef struct Player {
         s8 startedAnim; // Player_Action_TimeTravelEnd: Started playing the animation that was previously frozen
         s8 facingUpSlope; // Player_Action_SlideOnSlope: Facing uphill when sliding on a slope
         s8 hasBottledFairy; // Player_DeathRevival, Player_Action_Death (Ground/Water): Player has died with a bottled fairy that will revive the player
+        s8 crouchShielding; // Player_Action_ShieldBlock: Player is currently crouching and shielding (not standing up i.e. not target/parallel)
+        s8 messageItemSfxDone; // Player_GetItemTextboxSfx: Player has received textbox, item and sfx for get item
     } av1; // "Action Variable 1": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAE8 */ union {
         s16 actionVar2;
@@ -1282,6 +1284,8 @@ typedef struct Player {
         s16 playedLandingSfx; // Player_Action_BlueWarpArrive: Played sfx when landing on the ground
         s16 fairyReviveTimer; // Player_DeathRevival: Timer for bottled fairy revival sequence (60 frames)
         s16 waitForAnimDone; // Player_Action_IdleHostile: Used to ensure previously started animation finishes before starting idle animation.
+        s16 firstPersonAimDelay; // Player_Action_InFirstPerson: Delay from entering first person mode and able to aim with ranged weapon
+        s16 dismountDown; // Player_Action_DismountLadder: True if player is dismounting the ladder downwards
     } av2; // "Action Variable 2": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAEC */ f32 unk_AEC;
     /* 0xAF0 */ union {
@@ -1298,10 +1302,10 @@ typedef struct Player {
     /* 0xB30 */ s16 windAngleX;
     /* 0xB32 */ s16 windAngleY;
     /* 0xB34 */ f32 unk_B34;
-    /* 0xB38 */ f32 unk_B38;
+    /* 0xB38 */ f32 moveFrame; // Current frame of the walk-run cycle animation.
     /* 0xB3C */ f32 unk_B3C;
-    /* 0xB40 */ f32 unk_B40;
-    /* 0xB44 */ f32 unk_B44;
+    /* 0xB40 */ f32 forwardFootWeight; // See below. Serves same function, but is changed by intervals and so also used to weight animations.
+    /* 0xB44 */ f32 forwardFootTarget; // 0 = right. Which foot is forward/more anterior when sidewalking and throwing Boomerang
     /* 0xB48 */ f32 unk_B48;
     /* 0xB4C */ s16 unk_B4C;
     /* 0xB4E */ s16 turnRate; // Amount angle is changed every frame when turning in place
