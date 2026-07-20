@@ -405,7 +405,7 @@ s32 func_800CB950(Camera* camera) {
     if (camera->focalActor == &GET_PLAYER(camera->play)->actor) {
         return ((Camera_fabsf(camera->focalActorPosRot.pos.y - camera->focalActorFloorHeight)) < 11.0f) ||
                (camera->focalActor->gravity > -0.1f) ||
-               (((Player*)camera->focalActor)->stateFlags1 & PLAYER_STATE1_200000);
+               (((Player*)camera->focalActor)->stateFlags1 & PLAYER_STATE1_CLIMBING);
     } else {
         return true;
     }
@@ -500,7 +500,7 @@ s32 func_800CBC00(Camera* camera) {
     Actor* focalActor = camera->focalActor;
 
     if (camera->focalActor == &GET_PLAYER(camera->play)->actor) {
-        return ((Player*)focalActor)->stateFlags1 & PLAYER_STATE1_200000;
+        return ((Player*)focalActor)->stateFlags1 & PLAYER_STATE1_CLIMBING;
     } else {
         return 0;
     }

@@ -352,7 +352,7 @@ s32 Player_GetCurMaskItemId(PlayState* play) {
 
 void func_80122F28(Player* player) {
     if ((player->actor.category == ACTORCAT_PLAYER) &&
-        !(player->stateFlags1 & (PLAYER_STATE1_400 | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_200000 |
+        !(player->stateFlags1 & (PLAYER_STATE1_400 | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_CLIMBING |
                                  PLAYER_STATE1_800000 | PLAYER_STATE1_20000000)) &&
         !(player->stateFlags2 & PLAYER_STATE2_1)) {
         if (player->doorType <= PLAYER_DOORTYPE_TALKING) {
@@ -1522,13 +1522,13 @@ void Player_ReleaseLockOn(Player* player) {
  */
 void Player_ClearZTargeting(Player* player) {
     if ((player->actor.bgCheckFlags & BGCHECKFLAG_GROUND) ||
-        (player->stateFlags1 & (PLAYER_STATE1_200000 | PLAYER_STATE1_800000 | PLAYER_STATE1_IN_WATER)) ||
+        (player->stateFlags1 & (PLAYER_STATE1_CLIMBING | PLAYER_STATE1_800000 | PLAYER_STATE1_IN_WATER)) ||
         (!(player->stateFlags1 & (PLAYER_STATE1_40000 | PLAYER_STATE1_80000)) &&
          ((player->actor.world.pos.y - player->actor.floorHeight) < 100.0f))) {
         player->stateFlags1 &=
             ~(PLAYER_STATE1_Z_TARGETING | PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS | PLAYER_STATE1_PARALLEL |
               PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_LOCK_ON_FORCED_TO_RELEASE);
-    } else if (!(player->stateFlags1 & (PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_200000))) {
+    } else if (!(player->stateFlags1 & (PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_CLIMBING))) {
         player->stateFlags1 |= PLAYER_STATE1_80000;
     } else if ((player->stateFlags1 & PLAYER_STATE1_40000) && (player->transformation == PLAYER_FORM_DEKU)) {
         player->stateFlags1 &= ~(PLAYER_STATE1_Z_TARGETING | PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS |

@@ -1927,7 +1927,7 @@ void Interface_UpdateButtonsPart2(PlayState* play) {
                 Interface_SetHudVisibility(HUD_VISIBILITY_ALL);
             }
         }
-    } else if (player->stateFlags1 & PLAYER_STATE1_200000) {
+    } else if (player->stateFlags1 & PLAYER_STATE1_CLIMBING) {
         // First person view
         for (i = EQUIP_SLOT_C_LEFT; i <= EQUIP_SLOT_C_RIGHT; i++) {
             if (GET_CUR_FORM_BTN_ITEM(i) != ITEM_LENS_OF_TRUTH) {
@@ -4082,7 +4082,7 @@ void Interface_DrawItemButtons(PlayState* play) {
                 (gSaveContext.hudVisibility == HUD_VISIBILITY_A_HEARTS_MAGIC_WITH_OVERWRITE) ||
                 (msgCtx->msgMode != MSGMODE_NONE)) {
                 temp = 0;
-            } else if (player->stateFlags1 & PLAYER_STATE1_200000) {
+            } else if (player->stateFlags1 & PLAYER_STATE1_CLIMBING) {
                 temp = 70;
             } else {
                 temp = interfaceCtx->aAlpha;

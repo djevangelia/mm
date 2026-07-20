@@ -954,7 +954,7 @@ typedef enum PlayerCueId {
 // 
 #define PLAYER_STATE1_100000     (1 << 20)
 // 
-#define PLAYER_STATE1_200000     (1 << 21)
+#define PLAYER_STATE1_CLIMBING     (1 << 21)
 // 
 #define PLAYER_STATE1_400000     (1 << 22)
 // 
@@ -1281,6 +1281,7 @@ typedef struct Player {
         s16 csDelayTimer; // Player_Action_WaitForCutscene: Number of frames to wait before responding to a cutscene
         s16 playedLandingSfx; // Player_Action_BlueWarpArrive: Played sfx when landing on the ground
         s16 fairyReviveTimer; // Player_DeathRevival: Timer for bottled fairy revival sequence (60 frames)
+        s16 waitForAnimDone; // Player_Action_IdleHostile: Used to ensure previously started animation finishes before starting idle animation.
     } av2; // "Action Variable 2": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAEC */ f32 unk_AEC;
     /* 0xAF0 */ union {

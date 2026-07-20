@@ -2215,7 +2215,7 @@ s32 Actor_OfferGetItem(Actor* actor, PlayState* play, GetItemId getItemId, f32 x
 
     if (!(player->stateFlags1 &
           (PLAYER_STATE1_DEAD | PLAYER_STATE1_CHARGING_SPIN_ATTACK | PLAYER_STATE1_2000 | PLAYER_STATE1_4000 |
-           PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_100000 | PLAYER_STATE1_200000)) &&
+           PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_100000 | PLAYER_STATE1_CLIMBING)) &&
         (Player_GetExplosiveHeld(player) <= PLAYER_EXPLOSIVE_NONE)) {
         if ((actor->xzDistToPlayer <= xzRange) && (fabsf(actor->playerHeightRel) <= fabsf(yRange))) {
             if (((getItemId == GI_MASK_CIRCUS_LEADER) || (getItemId == GI_PENDANT_OF_MEMORIES) ||
@@ -2305,7 +2305,7 @@ s32 Actor_SetRideActor(PlayState* play, Actor* horse, s32 mountSide) {
     if (!(player->stateFlags1 &
           (PLAYER_STATE1_DEAD | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_CHARGING_SPIN_ATTACK | PLAYER_STATE1_2000 |
            PLAYER_STATE1_4000 | PLAYER_STATE1_40000 | PLAYER_STATE1_80000 | PLAYER_STATE1_100000 |
-           PLAYER_STATE1_200000))) {
+           PLAYER_STATE1_CLIMBING))) {
         player->rideActor = horse;
         player->mountSide = mountSide;
         CutsceneManager_Queue(CS_ID_GLOBAL_TALK);
