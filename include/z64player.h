@@ -636,8 +636,8 @@ typedef struct PlayerAgeProperties {
     /* 0xB0 */ PlayerAnimationHeader* unk_B0;
     /* 0xB4 */ PlayerAnimationHeader* unk_B4[4];
     /* 0xC4 */ PlayerAnimationHeader* unk_C4[2];
-    /* 0xCC */ PlayerAnimationHeader* unk_CC[2];
-    /* 0xD4 */ PlayerAnimationHeader* unk_D4[2];
+    /* 0xCC */ PlayerAnimationHeader* dismountLadderDownAnim[2];
+    /* 0xD4 */ PlayerAnimationHeader* dismountLadderUpAnim[2];
 } PlayerAgeProperties; // size = 0xDC
 
 typedef struct {

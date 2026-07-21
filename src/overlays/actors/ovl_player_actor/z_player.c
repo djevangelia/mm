@@ -73,7 +73,7 @@ void Player_UseItem(PlayState* play, Player* this, ItemId item);
 
 void Player_ReturnToIdle(Player* this, PlayState* play);
 
-void func_808484F0(Player* this);
+void Player_StringReboundCalculation(Player* this);
 
 void func_80838A20(PlayState* play, Player* this);
 void func_80839978(PlayState* play, Player* this);
@@ -170,7 +170,7 @@ void Player_Action_Climbing(Player* this, PlayState* play);
 void Player_Action_DismountLadder(Player* this, PlayState* play);
 void Player_Action_HorseRiding(Player* this, PlayState* play);
 void Player_Action_HorseDismount(Player* this, PlayState* play);
-void Player_Action_54(Player* this, PlayState* play);
+void Player_Action_WaterIdle(Player* this, PlayState* play);
 void Player_Action_StartModeWater(Player* this, PlayState* play);
 void Player_Action_56(Player* this, PlayState* play);
 void Player_Action_57(Player* this, PlayState* play);
@@ -184,7 +184,7 @@ void Player_Action_64(Player* this, PlayState* play);
 void Player_Action_65(Player* this, PlayState* play);
 void Player_Action_TimeTravelEnd(Player* this, PlayState* play);
 void Player_Action_DrinkBottle(Player* this, PlayState* play);
-void Player_Action_68(Player* this, PlayState* play);
+void Player_Action_SwingBottle(Player* this, PlayState* play);
 void Player_Action_UseFairyBottle(Player* this, PlayState* play);
 void Player_Action_70(Player* this, PlayState* play);
 void Player_Action_ExchangeItem(Player* this, PlayState* play);
@@ -837,12 +837,12 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
             &gPlayerAnim_link_normal_Fclimb_sideL,
             &gPlayerAnim_link_normal_Fclimb_sideR,
         },
-        // unk_CC
+        // dismountLadderDownAnim
         {
             &gPlayerAnim_link_normal_climb_endAL,
             &gPlayerAnim_link_normal_climb_endAR,
         },
-        // unk_D4
+        // dismountLadderUpAnim
         {
             &gPlayerAnim_link_normal_climb_endBR,
             &gPlayerAnim_link_normal_climb_endBL,
@@ -933,12 +933,12 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
             &gPlayerAnim_link_normal_Fclimb_sideL,
             &gPlayerAnim_link_normal_Fclimb_sideR,
         },
-        // unk_CC
+        // dismountLadderDownAnim
         {
             &gPlayerAnim_pg_climb_endAL,
             &gPlayerAnim_pg_climb_endAR,
         },
-        // unk_D4
+        // dismountLadderUpAnim
         {
             &gPlayerAnim_pg_climb_endBR,
             &gPlayerAnim_pg_climb_endBL,
@@ -1029,12 +1029,12 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
             &gPlayerAnim_link_normal_Fclimb_sideL,
             &gPlayerAnim_link_normal_Fclimb_sideR,
         },
-        // unk_CC
+        // dismountLadderDownAnim
         {
             &gPlayerAnim_pz_climb_endAL,
             &gPlayerAnim_pz_climb_endAR,
         },
-        // unk_D4
+        // dismountLadderUpAnim
         {
             &gPlayerAnim_pz_climb_endBR,
             &gPlayerAnim_pz_climb_endBL,
@@ -1125,12 +1125,12 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
             &gPlayerAnim_link_normal_Fclimb_sideL,
             &gPlayerAnim_link_normal_Fclimb_sideR,
         },
-        // unk_CC
+        // dismountLadderDownAnim
         {
             &gPlayerAnim_clink_normal_climb_endAL,
             &gPlayerAnim_clink_normal_climb_endAR,
         },
-        // unk_D4
+        // dismountLadderUpAnim
         {
             &gPlayerAnim_clink_normal_climb_endBR,
             &gPlayerAnim_clink_normal_climb_endBL,
@@ -1221,12 +1221,12 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
             &gPlayerAnim_link_normal_Fclimb_sideL,
             &gPlayerAnim_link_normal_Fclimb_sideR,
         },
-        // unk_CC
+        // dismountLadderDownAnim
         {
             &gPlayerAnim_clink_normal_climb_endAL,
             &gPlayerAnim_clink_normal_climb_endAR,
         },
-        // unk_D4
+        // dismountLadderUpAnim
         {
             &gPlayerAnim_clink_normal_climb_endBR,
             &gPlayerAnim_clink_normal_climb_endBL,
@@ -6361,7 +6361,7 @@ void func_80835324(PlayState* play, Player* this, f32 arg2, s16 arg3) {
 }
 
 void Player_SetupSwimIdle(PlayState* play, Player* this) {
-    Player_SetAction(play, this, Player_Action_54, 0);
+    Player_SetAction(play, this, Player_Action_WaterIdle, 0);
     Player_Anim_PlayLoopSlowMorph(play, this, &gPlayerAnim_link_swimer_swim_wait);
 }
 
@@ -8407,7 +8407,7 @@ void func_8083A04C(Player* this) {
         if (CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_A)) {
             this->currentBoots = PLAYER_BOOTS_ZORA_LAND;
         }
-        if (Player_Action_54 == this->actionFunc) {
+        if (Player_Action_WaterIdle == this->actionFunc) {
             this->av2.actionVar2 = 20;
         }
     } else {
@@ -8555,10 +8555,10 @@ struct_8085D200 D_8085D200[] = {
     { &gPlayerAnim_link_bottle_fish_miss, &gPlayerAnim_link_bottle_fish_in, 5, 3 },
 };
 
-s32 func_8083A6C0(PlayState* play, Player* this) {
+s32 Player_SetupUseEmptyBottle(PlayState* play, Player* this) {
     if (sPlayerUseHeldItem) {
         if (Player_GetBottleHeld(this) > PLAYER_BOTTLE_NONE) {
-            Player_SetAction(play, this, Player_Action_68, 0);
+            Player_SetAction(play, this, Player_Action_SwingBottle, 0);
             if (this->actor.depthInWater > 12.0f) {
                 this->av2.actionVar2 = 1;
             }
@@ -8991,7 +8991,7 @@ void func_8083B930(PlayState* play, Player* this) {
             Player_SetAction(play, this, Player_Action_59, 0);
             func_8083B798(play, this);
         } else {
-            Player_SetAction(play, this, Player_Action_54, 1);
+            Player_SetAction(play, this, Player_Action_WaterIdle, 1);
             Player_Anim_PlayOnceMorph(play, this,
                                       (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)
                                           ? &gPlayerAnim_link_swimer_wait2swim_wait
@@ -9065,7 +9065,7 @@ void func_8083BB4C(PlayState* play, Player* this) {
                        (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||
                          !(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) &&
                         (Player_Action_InFirstPerson != this->actionFunc) && (Player_Action_61 != this->actionFunc) &&
-                        (Player_Action_DeathWater != this->actionFunc) && (Player_Action_54 != this->actionFunc) &&
+                        (Player_Action_DeathWater != this->actionFunc) && (Player_Action_WaterIdle != this->actionFunc) &&
                         (Player_Action_57 != this->actionFunc) && (Player_Action_58 != this->actionFunc) &&
                         (Player_Action_59 != this->actionFunc) && (Player_Action_DiveFinish != this->actionFunc) &&
                         (Player_Action_StartModeWater != this->actionFunc) && (Player_Action_56 != this->actionFunc))) {
@@ -9781,7 +9781,7 @@ s32 func_8083D860(Player* this, PlayState* play) {
     return false;
 }
 
-void func_8083DCC4(Player* this, PlayerAnimationHeader* anim, PlayState* play) {
+void Player_SetupDismountLadder(Player* this, PlayerAnimationHeader* anim, PlayState* play) {
     Player_SetAction_PreserveMoveFlags(play, this, Player_Action_DismountLadder, 0);
     PlayerAnimation_PlayOnceSetSpeed(play, &this->skelAnime, anim, 4.0f / 3.0f);
 }
@@ -12624,7 +12624,7 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
                         (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND))) {
                 func_8083B930(play, this);
                 this->stateFlags2 &= ~PLAYER_STATE2_400;
-                if (Player_Action_54 == this->actionFunc) {
+                if (Player_Action_WaterIdle == this->actionFunc) {
                     this->av2.actionVar2 = 20;
                 }
             }
@@ -12665,7 +12665,7 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         }
 
         if (func_800B7118(this)) {
-            func_808484F0(this);
+            Player_StringReboundCalculation(this);
         }
 
         if (!play->soaringCsOrSoTCsPlaying && !(this->skelAnime.movementFlags & ANIM_FLAG_80)) {
@@ -13633,7 +13633,6 @@ s32 Player_TryDismountHorse(Player* this, PlayState* play) {
     return false;
 }
 
-// Used in 2 horse-related functions
 void Player_AdjustRidingPosition(Player* this, f32 arg1, f32 minFrame) {
     f32 addend;
     f32 dir;
@@ -13650,11 +13649,13 @@ void Player_AdjustRidingPosition(Player* this, f32 arg1, f32 minFrame) {
     }
 }
 
+// Likely MM-specific
 bool func_80847ED4(Player* this) {
     return (this->interactRangeActor != NULL) && (this->interactRangeActor->id == ACTOR_EN_ZOG) &&
            CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A);
 }
 
+// Likely MM-specific
 void func_80847F1C(Player* this) {
     s32 pad;
     f32 yPos;
@@ -13817,7 +13818,12 @@ void func_808484CC(Player* this) {
     Player_PlayAnimSfx(this, D_8085D5E0);
 }
 
-void func_808484F0(Player* this) {
+/**
+ * This is run every Player_Update if player is currently holding a ranged weapon (Bow, Slingshot, Hookshot).
+ * unk_585 is then used in the function Player_PostLimbDrawGameplay when drawing the bowstring, to make
+ * it bounce after firing an arrow/seed.
+ */
+void Player_StringReboundCalculation(Player* this) {
     this->unk_B08 += this->unk_B0C;
     this->unk_B0C -= this->unk_B08 * 5.0f;
     this->unk_B0C *= 0.3f;
@@ -13831,7 +13837,7 @@ void func_808484F0(Player* this) {
 }
 
 s32 Player_ActionHandler_7(Player* this, PlayState* play) {
-    if (!func_8083A6C0(play, this)) {
+    if (!Player_SetupUseEmptyBottle(play, this)) {
         if (func_808396B8(play, this)) {
             PlayerMeleeWeaponAnimation meleeWeaponAnim = func_808335F4(this);
 
@@ -16281,7 +16287,7 @@ void Player_Action_Talk(Player* this, PlayState* play) {
     if (this->stateFlags1 & PLAYER_STATE1_800000) {
         Player_Action_HorseRiding(this, play);
     } else if (func_801242B4(this)) {
-        Player_Action_54(this, play);
+        Player_Action_WaterIdle(this, play);
         if (this->actor.depthInWater > 100.0f) {
             this->actor.velocity.y = 0.0f;
             this->actor.gravity = 0.0f;
@@ -16602,15 +16608,16 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
 
                 sp78 = this->av1.actionVar1 + this->av2.actionVar2;
 
-                if (yStick > 0) {
+                if (yStick > 0) { // Direction up
                     sp6C.x = 0.0f;
                     sp6C.y = this->ageProperties->unk_40;
                     sp6C.z = this->ageProperties->unk_3C + 10.0f;
 
                     yIntersect = Player_RelativeRaycastDown2(play, this, &sp6C, &sp60);
 
+                    // Dismount up from climb
                     if (this->actor.world.pos.y < yIntersect) {
-                        if (this->av1.actionVar1 != 0) {
+                        if (this->av1.actionVar1 != 0) { // Regular wall
                             this->actor.world.pos.y = yIntersect;
                             this->stateFlags1 &= ~PLAYER_STATE1_CLIMBING;
                             Player_SetupHanging(play, this, this->actor.wallPoly, this->ageProperties->unk_3C,
@@ -16620,7 +16627,7 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
                             Player_SetupClimbUp(this, &gPlayerAnim_link_normal_jump_climb_up_free, play);
                             this->stateFlags1 |= PLAYER_STATE1_4000;
                         } else {
-                            func_8083DCC4(this, this->ageProperties->unk_D4[this->av2.actionVar2], play);
+                            Player_SetupDismountLadder(this, this->ageProperties->dismountLadderUpAnim[this->av2.actionVar2], play);
                         }
                     } else {
                         this->skelAnime.prevTransl = this->ageProperties->unk_4A[sp78];
@@ -16634,7 +16641,7 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
                             this->skelAnime.prevTransl = this->ageProperties->unk_44;
                         }
 
-                        func_8083DCC4(this, this->ageProperties->unk_CC[this->av2.actionVar2], play);
+                        Player_SetupDismountLadder(this, this->ageProperties->dismountLadderDownAnim[this->av2.actionVar2], play);
                         this->av2.actionVar2 = 1;
                     }
                 } else {
@@ -16646,18 +16653,19 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
                 }
 
                 this->av2.actionVar2 ^= 1;
+            // Direction sideways
             } else if ((this->av1.actionVar1 != 0) && (xStick != 0)) {
                 anim2 = this->ageProperties->unk_C4[this->av2.actionVar2];
 
-                if (xStick > 0) {
+                if (xStick > 0) { // Right
                     this->skelAnime.prevTransl = this->ageProperties->unk_7A[this->av2.actionVar2];
                     Player_Anim_PlayOnce(play, this, anim2);
-                } else {
+                } else { // Left
                     this->skelAnime.prevTransl = this->ageProperties->unk_7A[this->av2.actionVar2 + 2];
                     PlayerAnimation_Change(play, &this->skelAnime, anim2, -1.0f, Animation_GetLastFrame(anim2), 0.0f, 2,
                                            0.0f);
                 }
-            } else {
+            } else { // Stand still
                 this->stateFlags2 |= PLAYER_STATE2_1000;
             }
 
@@ -16665,6 +16673,7 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
         }
     }
 
+    // -2 = start from below (climbwall and ladder), -4 = start from above (only ladder)
     if (this->av2.actionVar2 < 0) {
         if (((this->av2.actionVar2 == -2) &&
              (PlayerAnimation_OnFrame(&this->skelAnime, 14.0f) || PlayerAnimation_OnFrame(&this->skelAnime, 29.0f))) ||
@@ -16712,7 +16721,7 @@ void Player_Action_DismountLadder(Player* this, PlayState* play) {
     
     frame = sUpDismountLadderFrames;
 
-    if (this->av2.dismountDown != 0) {
+    if (this->av2.dismountDown) {
         Player_PlayAnimSfx(this, sDownDismountLadderAnimSfx);
         frame = sDownDismountLadderFrames;
     }
@@ -16721,12 +16730,12 @@ void Player_Action_DismountLadder(Player* this, PlayState* play) {
         PlayerAnimation_OnFrame(&this->skelAnime, frame[1])) {
         CollisionPoly* poly;
         s32 bgId;
-        Vec3f pos;
+        Vec3f raycastPos;
 
-        pos.x = this->actor.world.pos.x;
-        pos.y = this->actor.world.pos.y + 20.0f;
-        pos.z = this->actor.world.pos.z;
-        if (BgCheck_EntityRaycastFloor5(&play->colCtx, &poly, &bgId, &this->actor, &pos) != 0.0f) {
+        raycastPos.x = this->actor.world.pos.x;
+        raycastPos.y = this->actor.world.pos.y + 20.0f;
+        raycastPos.z = this->actor.world.pos.z;
+        if (BgCheck_EntityRaycastFloor5(&play->colCtx, &poly, &bgId, &this->actor, &raycastPos) != 0.0f) {
             this->floorSfxOffset = SurfaceType_GetSfxOffset(&play->colCtx, poly, bgId);
             Player_AnimSfx_PlayFloorLand(this);
         }
@@ -17040,7 +17049,7 @@ s32 func_80850854(PlayState* play, Player* this) {
     return false;
 }
 
-void Player_Action_54(Player* this, PlayState* play) {
+void Player_Action_WaterIdle(Player* this, PlayState* play) {
     f32 speedTarget;
     s16 yawTarget;
 
@@ -17077,7 +17086,10 @@ void Player_Action_54(Player* this, PlayState* play) {
         } else if (!func_80850854(play, this)) {
             Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_LINEAR, play);
 
+            // No longer idle, switch actions
             if (speedTarget != 0.0f) {
+                // When swimnming and switching to opposite direction, do not start swimming
+                // or turn until speed has decreased to zero
                 if ((ABS_ALT(BINANG_SUB(this->actor.shape.rot.y, yawTarget)) > 0x6000) &&
                     !Math_StepToF(&this->speedXZ, 0.0f, 1.0f)) {
                     return;
@@ -18013,7 +18025,7 @@ struct_8085D798 D_8085D798[] = {
     { ACTOR_EN_ELF, FAIRY_PARAMS(FAIRY_TYPE_6, false, 0), ITEM_FAIRY, PLAYER_IA_BOTTLE_FAIRY, 0x5E },
 };
 
-void Player_Action_68(Player* this, PlayState* play) {
+void Player_Action_SwingBottle(Player* this, PlayState* play) {
     struct_8085D200* sp24 = &D_8085D200[this->av2.actionVar2];
 
     Player_DecelerateToZero(this);
