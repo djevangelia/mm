@@ -1298,8 +1298,8 @@ typedef struct Player {
     /* 0xB34 */ f32 unk_B34;
     /* 0xB38 */ f32 unk_B38;
     /* 0xB3C */ f32 unk_B3C;
-    /* 0xB40 */ f32 unk_B40;
-    /* 0xB44 */ f32 unk_B44;
+    /* 0xB40 */ f32 forwardFootWeight; // See below. Serves same function, but is changed by intervals and so also used to weight animations.
+    /* 0xB44 */ f32 forwardFootTarget; // 0 = right. Which foot is forward/more anterior when hostile idle, sidewalking and throwing Boomerang
     /* 0xB48 */ f32 unk_B48;
     /* 0xB4C */ s16 unk_B4C;
     /* 0xB4E */ s16 turnRate; // Amount angle is changed every frame when turning in place
