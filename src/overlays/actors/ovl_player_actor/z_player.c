@@ -76,8 +76,8 @@ void Player_ReturnToIdle(Player* this, PlayState* play);
 void Player_StringReboundCalculation(Player* this);
 
 void func_80838A20(PlayState* play, Player* this);
-void func_80839978(PlayState* play, Player* this);
-void func_80839A10(PlayState* play, Player* this);
+void Player_SetupBremenMarch(PlayState* play, Player* this);
+void Player_SetupKamaroDance(PlayState* play, Player* this);
 
 void func_80859CE0(PlayState* play, Player* this, s32 arg2);
 
@@ -127,8 +127,8 @@ void Player_Action_StopBackwalk(Player* this, PlayState* play);
 void Player_Action_StopBackwalkWaitAnim(Player* this, PlayState* play);
 void Player_Action_FastSidewalk(Player* this, PlayState* play);
 void Player_Action_TurnInPlace(Player* this, PlayState* play);
-void Player_Action_11(Player* this, PlayState* play);
-void Player_Action_12(Player* this, PlayState* play);
+void Player_Action_BremenMarch(Player* this, PlayState* play);
+void Player_Action_KamaroDance(Player* this, PlayState* play);
 void Player_Action_RunWalk(Player* this, PlayState* play);
 void Player_Action_RunWalkParallel(Player* this, PlayState* play);
 void Player_Action_15(Player* this, PlayState* play);
@@ -485,12 +485,12 @@ typedef struct GetItemEntry {
     /* 0x4 */ u16 objectId;
 } GetItemEntry; // size = 0x6
 
-typedef struct struct_8085D200 {
-    /* 0x0 */ PlayerAnimationHeader* unk_0;
-    /* 0x4 */ PlayerAnimationHeader* unk_4;
-    /* 0x8 */ u8 unk_8;
-    /* 0x9 */ u8 unk_9;
-} struct_8085D200; // size = 0xC
+typedef struct BottleSwingInfo {
+    /* 0x0 */ PlayerAnimationHeader* missAnimation;
+    /* 0x4 */ PlayerAnimationHeader* catchAnimation;
+    /* 0x8 */ u8 firstActiveFrame;
+    /* 0x9 */ u8 numActiveFrames;
+} BottleSwingInfo; // size = 0xC
 
 f32 sControlStickMagnitude;
 s16 sControlStickAngle;
@@ -3908,9 +3908,9 @@ void Player_ProcessItemButtons(Player* this, PlayState* play) {
                 }
             }
         } else if (item == ITEM_F1) {
-            func_80839978(play, this);
+            Player_SetupBremenMarch(play, this);
         } else if (item == ITEM_F2) {
-            func_80839A10(play, this);
+            Player_SetupKamaroDance(play, this);
         } else if ((Player_BButtonSwordFromIA(this, Player_ItemToItemAction(this, item)) != PLAYER_B_SWORD_NONE) &&
                    (gSaveContext.jinxTimer != 0)) {
             if (Message_GetState(&play->msgCtx) == TEXT_STATE_NONE) {
@@ -4716,7 +4716,7 @@ bool Player_CanUpdateItems(Player* this) {
 
 // Whether action is Bremen marching or Kamaro dancing
 bool func_8083213C(Player* this) {
-    return (Player_Action_11 == this->actionFunc) || (Player_Action_12 == this->actionFunc);
+    return (Player_Action_BremenMarch == this->actionFunc) || (Player_Action_KamaroDance == this->actionFunc);
 }
 
 bool Player_UpdateUpperBody(Player* this, PlayState* play) {
@@ -8236,7 +8236,11 @@ void Player_SetupJumpslash(PlayState* play, Player* this, PlayerMeleeWeaponAnima
     Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_SWORD_L);
 }
 
-s32 func_808396B8(PlayState* play, Player* this) {
+/**
+ * Uses a melee weapon already in hand or form melee if not shielding or restricted by form.
+ * @return true if use weapon is successful
+ */
+s32 Player_UseMeleeWeapon(PlayState* play, Player* this) {
     if (!(this->stateFlags1 & PLAYER_STATE1_400000) &&
         (((this->actor.id != ACTOR_PLAYER) && CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_B)) ||
          ((Player_GetMeleeWeaponHeld(this) != PLAYER_MELEEWEAPON_NONE) &&
@@ -8249,8 +8253,12 @@ s32 func_808396B8(PlayState* play, Player* this) {
     return false;
 }
 
-s32 func_80839770(Player* this, PlayState* play) {
-    if (func_808396B8(play, this)) {
+/**
+ * If able to do a jumpslash, call setup action.
+ * @return true if can start jumpslash
+ */
+s32 Player_TryJumpslash(Player* this, PlayState* play) {
+    if (Player_UseMeleeWeapon(play, this)) {
         if ((this->transformation != PLAYER_FORM_GORON) && (sPlayerFloorType != FLOOR_TYPE_7)) {
             Player_SetupJumpslash(play, this,
                           (this->transformation == PLAYER_FORM_ZORA) ? PLAYER_MWA_ZORA_JUMPKICK_START
@@ -8261,6 +8269,7 @@ s32 func_80839770(Player* this, PlayState* play) {
     }
     return false;
 }
+
 
 s32 func_80839800(Player* this, PlayState* play) {
     if ((this->controlStickDirections[this->controlStickDataIndex] == PLAYER_STICK_DIR_FORWARD) &&
@@ -8310,10 +8319,10 @@ void func_80839860(Player* this, PlayState* play, s32 controlStickDirection) {
                                                                                                 : NA_SE_PL_SKIP);
 }
 
-void func_80839978(PlayState* play, Player* this) {
+void Player_SetupBremenMarch(PlayState* play, Player* this) {
     if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
         this->itemAction = PLAYER_IA_OCARINA;
-        Player_SetAction_PreserveItemAction(play, this, Player_Action_11, 0);
+        Player_SetAction_PreserveItemAction(play, this, Player_Action_BremenMarch, 0);
         Player_Anim_PlayLoopAdjusted(play, this, &gPlayerAnim_clink_normal_okarina_walk);
         Player_AnimReplace_Setup(play, this, ANIM_FLAG_4 | ANIM_FLAG_200);
         this->stateFlags3 |= PLAYER_STATE3_20000000;
@@ -8322,10 +8331,10 @@ void func_80839978(PlayState* play, Player* this) {
     }
 }
 
-void func_80839A10(PlayState* play, Player* this) {
+void Player_SetupKamaroDance(PlayState* play, Player* this) {
     if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
         this->itemAction = PLAYER_IA_NONE;
-        Player_SetAction_PreserveItemAction(play, this, Player_Action_12, 0);
+        Player_SetAction_PreserveItemAction(play, this, Player_Action_KamaroDance, 0);
         Player_Anim_PlayLoopAdjusted(play, this, &gPlayerAnim_alink_dance_loop);
         this->stateFlags2 |= PLAYER_STATE2_2000000;
         Audio_PlayFanfare(NA_BGM_KAMARO_DANCE);
@@ -8607,19 +8616,23 @@ s32 func_8083A658(PlayState* play, Player* this) {
     return false;
 }
 
-struct_8085D200 D_8085D200[] = {
-    { &gPlayerAnim_link_bottle_bug_miss, &gPlayerAnim_link_bottle_bug_in, 2, 3 },
-    { &gPlayerAnim_link_bottle_fish_miss, &gPlayerAnim_link_bottle_fish_in, 5, 3 },
+static BottleSwingInfo sBottleSwingInfos[] = {
+    { &gPlayerAnim_link_bottle_bug_miss, &gPlayerAnim_link_bottle_bug_in, 2, 3 }, // on land
+    { &gPlayerAnim_link_bottle_fish_miss, &gPlayerAnim_link_bottle_fish_in, 5, 3 }, // in water
 };
 
+/**
+ * Sets up swinging empty bottle.
+ * @return true if player used bottle
+ */
 s32 Player_SetupUseEmptyBottle(PlayState* play, Player* this) {
     if (sPlayerUseHeldItem) {
         if (Player_GetBottleHeld(this) > PLAYER_BOTTLE_NONE) {
             Player_SetAction(play, this, Player_Action_SwingBottle, 0);
             if (this->actor.depthInWater > 12.0f) {
-                this->av2.actionVar2 = 1;
+                this->av2.inWater = true;
             }
-            Player_Anim_PlayOnceAdjusted(play, this, D_8085D200[this->av2.actionVar2].unk_0);
+            Player_Anim_PlayOnceAdjusted(play, this, sBottleSwingInfos[this->av2.inWater].missAnimation);
             Player_PlaySfx(this, NA_SE_IT_SWORD_SWING);
             Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_AUTO_JUMP);
             return true;
@@ -13921,7 +13934,7 @@ void Player_StringReboundCalculation(Player* this) {
 
 s32 Player_ActionHandler_7(Player* this, PlayState* play) {
     if (!Player_SetupUseEmptyBottle(play, this)) {
-        if (func_808396B8(play, this)) {
+        if (Player_UseMeleeWeapon(play, this)) {
             PlayerMeleeWeaponAnimation meleeWeaponAnim = func_808335F4(this);
 
             Player_SetupMeleeAttack(play, this, meleeWeaponAnim);
@@ -14926,7 +14939,7 @@ void Player_Action_TurnInPlace(Player* this, PlayState* play) {
     this->yaw = this->actor.shape.rot.y;
 }
 
-void Player_Action_11(Player* this, PlayState* play) {
+void Player_Action_BremenMarch(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20;
 
     if (this->speedXZ < 1.0f) {
@@ -14937,7 +14950,7 @@ void Player_Action_11(Player* this, PlayState* play) {
     PlayerAnimation_Update(play, &this->skelAnime);
 
     if (!func_80847880(play, this) && (!Player_TryActionHandlerList(play, this, sActionHandlerListIdle, true) ||
-                                       (Player_Action_11 == this->actionFunc))) {
+                                       (Player_Action_BremenMarch == this->actionFunc))) {
         f32 speedTarget;
         f32 temp_fv0;
         f32 temp_fv1;
@@ -14972,7 +14985,7 @@ void Player_Action_11(Player* this, PlayState* play) {
     }
 }
 
-void Player_Action_12(Player* this, PlayState* play) {
+void Player_Action_KamaroDance(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20;
     PlayerAnimation_Update(play, &this->skelAnime);
 
@@ -14980,7 +14993,7 @@ void Player_Action_12(Player* this, PlayState* play) {
 
     if (!func_80847880(play, this)) {
         if (!Player_TryActionHandlerList(play, this, sActionHandlerListIdle, false) ||
-            (Player_Action_12 == this->actionFunc)) {
+            (Player_Action_KamaroDance == this->actionFunc)) {
             if (!CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_B)) {
                 Player_SetupIdlePlayOnce(this, play);
             }
@@ -15484,7 +15497,7 @@ void Player_Action_NotOnGround(Player* this, PlayState* play) {
         Player_UpdateUpperBody(this, play);
         if ((((this->stateFlags2 & PLAYER_STATE2_80000) &&
               ((this->av1.actionVar1 == 2) || (this->av1.actionVar1 >= 4))) ||
-             !func_80839770(this, play)) &&
+             !Player_TryJumpslash(this, play)) &&
             (this->actor.velocity.y < 0.0f)) {
             if (this->av2.actionVar2 >= 0) {
                 if ((this->actor.bgCheckFlags & BGCHECKFLAG_WALL) || (this->av2.actionVar2 == 0) ||
@@ -18128,23 +18141,23 @@ struct_8085D798 D_8085D798[] = {
 };
 
 void Player_Action_SwingBottle(Player* this, PlayState* play) {
-    struct_8085D200* sp24 = &D_8085D200[this->av2.actionVar2];
+    BottleSwingInfo* sp24 = &sBottleSwingInfos[this->av2.inWater];
 
     Player_DecelerateToZero(this);
 
     if (PlayerAnimation_Update(play, &this->skelAnime)) {
-        if (this->av1.actionVar1 != 0) {
+        if (this->av1.bottleCatchType != 0) {
             func_808323C0(this, play->playerCsIds[PLAYER_CS_ID_ITEM_SHOW]);
 
-            if (this->av2.actionVar2 == 0) {
+            if (!this->av2.startedTextbox) {
                 Message_StartTextbox(play, D_8085D798[this->av1.actionVar1 - 1].textId, &this->actor);
 
                 Audio_PlayFanfare(NA_BGM_GET_ITEM | 0x900);
-                this->av2.actionVar2 = 1;
+                this->av2.startedTextbox = true;
             } else if (Message_GetState(&play->msgCtx) == TEXT_STATE_CLOSING) {
                 Actor* talkActor;
 
-                this->av1.actionVar1 = 0;
+                this->av1.bottleCatchType = 0;
                 Player_StopCutscene(this);
                 Camera_SetFinishedFlag(Play_GetCamera(play, CAM_ID_MAIN));
 
@@ -18157,11 +18170,11 @@ void Player_Action_SwingBottle(Player* this, PlayState* play) {
             Player_SetupIdlePlayOnce(this, play);
         }
     } else {
-        if (this->av1.actionVar1 == 0) {
-            s32 temp_ft5 = this->skelAnime.curFrame - sp24->unk_8;
+        if (this->av1.bottleCatchType == 0) {
+            s32 temp_ft5 = this->skelAnime.curFrame - sp24->firstActiveFrame;
 
-            if ((temp_ft5 >= 0) && (sp24->unk_9 >= temp_ft5)) {
-                if ((this->av2.actionVar2 != 0) && (temp_ft5 == 0)) {
+            if ((temp_ft5 >= 0) && (sp24->numActiveFrames >= temp_ft5)) {
+                if ((this->av2.inWater != 0) && (temp_ft5 == 0)) {
                     Player_PlaySfx(this, NA_SE_IT_SCOOP_UP_WATER);
                 }
 
@@ -18182,12 +18195,12 @@ void Player_Action_SwingBottle(Player* this, PlayState* play) {
                         }
 
                         if (i < ARRAY_COUNT(D_8085D798)) {
-                            this->av1.actionVar1 = i + 1;
-                            this->av2.actionVar2 = 0;
+                            this->av1.bottleCatchType = i + 1;
+                            this->av2.actionVar2 = false;
                             this->stateFlags1 |= PLAYER_STATE1_10000000 | PLAYER_STATE1_20000000;
                             interactRangeActor->parent = &this->actor;
                             Player_UpdateBottleHeld(play, this, entry->itemId, entry->itemAction);
-                            Player_Anim_PlayOnceAdjusted(play, this, sp24->unk_4);
+                            Player_Anim_PlayOnceAdjusted(play, this, sp24->catchAnimation);
                         }
                     }
                 }

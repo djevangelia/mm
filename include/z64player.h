@@ -1287,6 +1287,7 @@ typedef struct Player {
         s8 actionVar1;
         s8 startedAnim; // Player_Action_TimeTravelEnd: Started playing the animation that was previously frozen
         s8 facingUpSlope; // Player_Action_SlideOnSlope: Facing uphill when sliding on a slope
+        s8 bottleCatchType; // Player_Action_SwingBottle: entry type for `sBottleCatchInfo`, corresponds to actor caught in a bottle
         s8 hasBottledFairy; // Player_DeathRevival, Player_Action_Death (Ground/Water): Player has died with a bottled fairy that will revive the player
         s8 isCrouchStabbing; // Player_Action_ShieldCrouch: Player is currently crouch stabbing
         s8 crouchShielding; // Player_Action_ShieldBlock: Player is currently crouching and shielding (not standing up i.e. not target/parallel)
@@ -1297,6 +1298,8 @@ typedef struct Player {
         s16 fallDamageStunTimer; // Player_Action_Idle: Prevents any movement and shakes model up and down quickly to indicate fall damage stun
         s16 bonked; // Player_Action_Roll: Set to true after bonking into a wall or an actor
         s16 animDelayTimer; // Player_Action_TimeTravelEnd: Delays playing animation until finished counting down
+        s16 startedTextbox; // Player_Action_SwingBottle: set to true when the textbox is started
+        s16 inWater; // Player_Action_SwingBottle: True if a bottle is swung in water. Used to determine which bottle swing animation to use.
         s16 csDelayTimer; // Player_Action_WaitForCutscene: Number of frames to wait before responding to a cutscene
         s16 playedLandingSfx; // Player_Action_BlueWarpArrive: Played sfx when landing on the ground
         s16 fairyReviveTimer; // Player_DeathRevival: Timer for bottled fairy revival sequence (60 frames)
