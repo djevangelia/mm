@@ -10006,7 +10006,7 @@ void Player_SetForwardFoot(Player* this, f32 speedTarget, s16 yawTarget) {
     Math_StepToF(&this->forwardFootWeight, this->forwardFootTarget, 0.3f);
 }
 
-void func_8083E958(PlayState* play, Player* this) {
+void Player_BlendFootAnim(PlayState* play, Player* this) {
     PlayerAnimation_BlendToJoint(play, &this->skelAnime, func_8082EF54(this), this->unk_B38, func_8082EF9C(this),
                                  this->unk_B38, this->forwardFootWeight, this->blendTableBuffer);
 }
@@ -10045,6 +10045,7 @@ void func_8083EA44(Player* this, f32 arg1) {
         this->actor.shape.unk_17 = sp24 ? 1 : 2;
     }
 
+    // Ensure that moveFrame is always between 0 and 29
     this->unk_B38 += arg1;
     if (this->unk_B38 < 0.0f) {
         this->unk_B38 += 29.0f;
@@ -14268,7 +14269,7 @@ void Player_Action_IdleHostile(Player* this, PlayState* play) {
         }
         func_8082FC60(this);
     } else {
-        func_8083E958(play, this);
+        Player_BlendFootAnim(play, this);
     }
 
     Player_DecelerateToZero(this);
@@ -20571,7 +20572,7 @@ void Player_CsAction_10(PlayState* play, Player* this, CsCmdActorCue* cue) {
         }
         func_8082FC60(this);
     } else {
-        func_8083E958(play, this);
+        Player_BlendFootAnim(play, this);
     }
 }
 
