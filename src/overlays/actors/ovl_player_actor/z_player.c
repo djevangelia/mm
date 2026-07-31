@@ -181,7 +181,7 @@ void Player_Action_61(Player* this, PlayState* play);
 void Player_Action_DeathWater(Player* this, PlayState* play);
 void Player_Action_63(Player* this, PlayState* play);
 void Player_Action_64(Player* this, PlayState* play);
-void Player_Action_65(Player* this, PlayState* play);
+void Player_Action_GetItem(Player* this, PlayState* play);
 void Player_Action_TimeTravelEnd(Player* this, PlayState* play);
 void Player_Action_DrinkBottle(Player* this, PlayState* play);
 void Player_Action_SwingBottle(Player* this, PlayState* play);
@@ -193,7 +193,7 @@ void Player_Action_SlideOnSlope(Player* this, PlayState* play);
 void Player_Action_WaitForCutscene(Player* this, PlayState* play);
 void Player_Action_StartWarpSongArrive(Player* this, PlayState* play);
 void Player_Action_BlueWarpArrive(Player* this, PlayState* play);
-void Player_Action_77(Player* this, PlayState* play);
+void Player_Action_VoidEnterGrotto(Player* this, PlayState* play);
 void Player_Action_TryOpeningDoor(Player* this, PlayState* play);
 void Player_Action_ExitGrotto(Player* this, PlayState* play);
 void Player_Action_80(Player* this, PlayState* play);
@@ -2832,7 +2832,7 @@ void Player_ProcessFidgetAnimSfxList(Player* this, s32 fidgetAnimIndex) {
 }
 
 PlayerAnimationHeader* func_8082EEE0(Player* this) {
-    if (this->unk_B64 != 0) {
+    if (this->runDamageTimer != 0) {
         return D_8085BE84[PLAYER_ANIMGROUP_damage_run][this->modelAnimType];
     } else {
         return D_8085BE84[PLAYER_ANIMGROUP_run][this->modelAnimType];
@@ -5157,10 +5157,10 @@ s32 Player_CalcSpeedAndYawFromControlStick(PlayState* play, Player* this, f32* o
             f32 speedCap = this->unk_B50;
             f32 var_fa1;
 
-            if (this->unk_AB8 != 0.0f) {
+            if (this->quicksandEffect != 0.0f) {
                 var_fa1 = (this->focusActor != NULL) ? 0.002f : 0.008f;
 
-                speedCap -= this->unk_AB8 * var_fa1;
+                speedCap -= this->quicksandEffect * var_fa1;
                 speedCap = CLAMP_MIN(speedCap, 2.0f);
             }
 
@@ -5788,7 +5788,10 @@ PlayerAnimationHeader* D_8085D0D4[] = {
     &gPlayerAnim_link_anchor_back_hitR,
 };
 
-void func_80833B18(PlayState* play, Player* this, s32 arg2, f32 speed, f32 velocityY, s16 arg5,
+/**
+ * Handle taking damage and the hit response to type of damage (frozen, knockback, etc).
+ */
+void Player_HandleDamageHitResponse(PlayState* play, Player* this, s32 arg2, f32 speed, f32 velocityY, s16 arg5,
                    s32 invincibilityTimer) {
     PlayerAnimationHeader* anim = NULL;
 
@@ -5796,7 +5799,7 @@ void func_80833B18(PlayState* play, Player* this, s32 arg2, f32 speed, f32 veloc
         func_80833A64(this);
     }
 
-    this->unk_B64 = 0;
+    this->runDamageTimer = 0;
 
     Player_PlaySfx(this, NA_SE_PL_DAMAGE);
 
@@ -5884,7 +5887,7 @@ void func_80833B18(PlayState* play, Player* this, s32 arg2, f32 speed, f32 veloc
             }
             this->actor.bgCheckFlags &= ~BGCHECKFLAG_GROUND;
         } else if ((this->speedXZ > 4.0f) && !Player_CheckHostileLockOn(this)) {
-            this->unk_B64 = 20;
+            this->runDamageTimer = 20;
 
             Player_RequestRumble(play, this, 120, 20, 10, SQ(0));
             Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_DAMAGE_S);
@@ -5948,14 +5951,19 @@ bool func_808340D4(FloorType floorType) {
     return (floorType == FLOOR_TYPE_4) || (floorType == FLOOR_TYPE_7) || (floorType == FLOOR_TYPE_12);
 }
 
-void func_80834104(PlayState* play, Player* this) {
-    Player_SetAction(play, this, Player_Action_77, 0);
+/**
+ * For falling voidouts, Zora frozen underwater and entering grottos.
+ * Both player states need to be set, as neither has been set when called for voidouts
+ * (through Player_HandleExitsAndVoids).
+ */
+void Player_SetupVoidEnterGrotto(PlayState* play, Player* this) {
+    Player_SetAction(play, this, Player_Action_VoidEnterGrotto, 0);
     this->stateFlags1 |= PLAYER_STATE1_20000000 | PLAYER_STATE1_80000000;
 }
 
 void func_80834140(PlayState* play, Player* this, PlayerAnimationHeader* anim) {
     if (!(this->stateFlags1 & PLAYER_STATE1_DEAD)) {
-        func_80834104(play, this);
+        Player_SetupVoidEnterGrotto(play, this);
         if (func_8082DA90(play)) {
             this->av2.actionVar2 = -30;
         }
@@ -6071,21 +6079,25 @@ void func_808345C8(void) {
     }
 }
 
+/**
+ * Handles some voidouts, crushing, voidout damage, knockback, shielding hits, AC hits, floor/wall damage
+ */
 s32 func_80834600(Player* this, PlayState* play) {
     s32 pad74;
-    s32 var_v0;
+    s32 quicksandVoidout; // OoT usage
 
-    if (this->unk_D6A != 0) {
+    // Damage after voidout respawn
+    if (this->voidoutDamage != 0) {
         if (!Player_InBlockingCsMode(play, this)) {
             Player_InflictDamage(play, -16);
-            this->unk_D6A = 0;
+            this->voidoutDamage = 0;
         }
-    } else if ((var_v0 = ((Player_GetHeight(this) - 8.0f) < (this->unk_AB8 * this->actor.scale.y))) ||
+    } else if ((quicksandVoidout = ((Player_GetHeight(this) - 8.0f) < (this->quicksandEffect * this->actor.scale.y))) ||
                (this->actor.bgCheckFlags & BGCHECKFLAG_CRUSHED) || (sPlayerFloorType == FLOOR_TYPE_9) ||
                (this->stateFlags2 & PLAYER_STATE2_80000000)) {
         Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_DAMAGE_S);
 
-        if (var_v0) {
+        if (quicksandVoidout) {
             func_80169FDC(play);
             func_808345C8();
             Scene_SetExitFade(play);
@@ -6106,7 +6118,7 @@ s32 func_80834600(Player* this, PlayState* play) {
             }
 
             this->actor.colChkInfo.damage += this->unk_B74;
-            func_80833B18(play, this, sp6C[this->unk_B75 - 1], this->unk_B78, this->unk_B7C, this->unk_B76, 20);
+            Player_HandleDamageHitResponse(play, this, sp6C[this->unk_B75 - 1], this->unk_B78, this->unk_B7C, this->unk_B76, 20);
         }
     } else if ((this->shieldQuad.base.acFlags & AC_BOUNCED) || (this->shieldCylinder.base.acFlags & AC_BOUNCED) ||
                ((this->invincibilityTimer < 0) && (this->cylinder.base.acFlags & AC_HIT) &&
@@ -6174,7 +6186,7 @@ s32 func_80834600(Player* this, PlayState* play) {
                 return true;
             }
         }
-        func_80833B18(play, this, var_a2_2, 4.0f, 5.0f, Actor_WorldYawTowardActor(sp60, &this->actor), 20);
+        Player_HandleDamageHitResponse(play, this, var_a2_2, 4.0f, 5.0f, Actor_WorldYawTowardActor(sp60, &this->actor), 20);
     } else if (this->invincibilityTimer != 0) {
         return false;
     } else {
@@ -6200,7 +6212,7 @@ s32 func_80834600(Player* this, PlayState* play) {
             func_80834534(play, this);
         } else {
             this->actor.colChkInfo.damage = 4;
-            func_80833B18(play, this, (var_v1_2 == BGCHECK_SCENE) ? 0 : 1, 4.0f, 5.0f,
+            Player_HandleDamageHitResponse(play, this, (var_v1_2 == BGCHECK_SCENE) ? 0 : 1, 4.0f, 5.0f,
                           var_a1 ? this->actor.wallYaw : this->actor.shape.rot.y, 20);
             return true;
         }
@@ -6365,9 +6377,13 @@ void Player_SetupSwimIdle(PlayState* play, Player* this) {
     Player_Anim_PlayLoopSlowMorph(play, this, &gPlayerAnim_link_swimer_swim_wait);
 }
 
-s32 func_80835428(PlayState* play, Player* this) {
+/**
+ * Will make player enter grotto if correct state is set and no transition trigger set yet.
+ * (The player state has been set by the grotto actor.)
+ */
+s32 Player_ShouldEnterGrotto(PlayState* play, Player* this) {
     if (!func_8082DA90(play) && (this->stateFlags1 & PLAYER_STATE1_80000000)) {
-        func_80834104(play, this);
+        Player_SetupVoidEnterGrotto(play, this);
         Player_Anim_PlayLoop(play, this, &gPlayerAnim_link_normal_landing_wait);
         Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_FALL_S);
         Audio_PlaySfx_2(NA_SE_OC_SECRET_WARP_IN);
@@ -6551,7 +6567,7 @@ s32 Player_HandleExitsAndVoids(PlayState* play, Player* this, CollisionPoly* pol
                         Player_SetAction(play, this, Player_Action_1, 0);
                         this->stateFlags1 |= PLAYER_STATE1_20000000;
                     } else {
-                        func_80834104(play, this);
+                        Player_SetupVoidEnterGrotto(play, this);
                         this->av2.actionVar2 = 9999;
                         if (this->floorProperty == FLOOR_PROPERTY_5) {
                             this->av1.actionVar1 = -1;
@@ -7399,7 +7415,7 @@ void func_80837C20(PlayState* play, Player* this) {
 }
 
 void func_80837C78(PlayState* play, Player* this) {
-    Player_SetAction_PreserveMoveFlags(play, this, Player_Action_65, 0);
+    Player_SetAction_PreserveMoveFlags(play, this, Player_Action_GetItem, 0);
     this->stateFlags1 |= (PLAYER_STATE1_400 | PLAYER_STATE1_20000000);
 
     if (this->getItemId == GI_HEART_CONTAINER) {
@@ -7558,7 +7574,7 @@ void func_8083827C(Player* this, PlayState* play) {
         ((this->stateFlags1 & PLAYER_STATE1_80000000) ||
          !(this->stateFlags3 & (PLAYER_STATE3_200 | PLAYER_STATE3_2000))) &&
         !(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
-        if (func_80835428(play, this)) {
+        if (Player_ShouldEnterGrotto(play, this)) {
             return;
         }
 
@@ -9137,22 +9153,22 @@ void func_8083BF54(PlayState* play, Player* this) {
             sfxId = NA_SE_PL_SINK_ON_SAND - SFX_FLAG;
         }
 
-        var_fa1 = CLAMP_MIN(var_fa1, this->unk_AB8);
+        var_fa1 = CLAMP_MIN(var_fa1, this->quicksandEffect);
 
-        var_fv0 = (sPlayerFloorType == FLOOR_TYPE_14) ? 200.0f : (var_fa1 - this->unk_AB8) * 0.02f;
+        var_fv0 = (sPlayerFloorType == FLOOR_TYPE_14) ? 200.0f : (var_fa1 - this->quicksandEffect) * 0.02f;
         var_fv0 = CLAMP(var_fv0, 0.0f, 300.0f);
 
-        temp_fv1_2 = this->unk_AB8;
-        this->unk_AB8 += var_fv0 - var_ft4;
-        this->unk_AB8 = CLAMP(this->unk_AB8, 0.0f, var_fa1);
+        temp_fv1_2 = this->quicksandEffect;
+        this->quicksandEffect += var_fv0 - var_ft4;
+        this->quicksandEffect = CLAMP(this->quicksandEffect, 0.0f, var_fa1);
 
-        if ((this->speedXZ == 0.0f) && (fabsf(this->unk_AB8 - temp_fv1_2) > 2.0f)) {
+        if ((this->speedXZ == 0.0f) && (fabsf(this->quicksandEffect - temp_fv1_2) > 2.0f)) {
             Actor_PlaySfx_Flagged2(&this->actor, sfxId);
         }
 
-        this->actor.gravity -= this->unk_AB8 * 0.004f;
+        this->actor.gravity -= this->quicksandEffect * 0.004f;
     } else {
-        this->unk_AB8 = 0.0f;
+        this->quicksandEffect = 0.0f;
     }
 
     if ((this->stateFlags3 & PLAYER_STATE3_10) && (this->actor.bgCheckFlags & BGCHECKFLAG_WATER)) {
@@ -10344,7 +10360,7 @@ void func_8083F358(Player* this, s32 arg1, PlayState* play) {
     }
 
     Math_ScaledStepToS(&this->unk_B70, var_a1, 0x190);
-    if ((this->modelAnimType == PLAYER_ANIMTYPE_3) || ((this->unk_B70 == 0) && (this->unk_AB8 <= 0.0f))) {
+    if ((this->modelAnimType == PLAYER_ANIMTYPE_3) || ((this->unk_B70 == 0) && (this->quicksandEffect <= 0.0f))) {
         if (!arg1) {
             PlayerAnimation_LoadToJoint(play, &this->skelAnime, D_8085BE84[PLAYER_ANIMGROUP_walk][this->modelAnimType],
                                         this->moveFrame);
@@ -10358,7 +10374,7 @@ void func_8083F358(Player* this, s32 arg1, PlayState* play) {
     if (this->unk_B70 != 0) {
         var_fv1 = this->unk_B70 / (f32)0x2AAA;
     } else {
-        var_fv1 = this->unk_AB8 * 0.0006f;
+        var_fv1 = this->quicksandEffect * 0.0006f;
     }
 
     var_fv1 *= fabsf(this->speedXZ) * 0.5f;
@@ -10561,7 +10577,12 @@ void Player_DecreaseStickUseNone(PlayState* play, Player* this) {
     Player_UseItem(play, this, ITEM_NONE);
 }
 
-bool func_8083FF30(PlayState* play, Player* this) {
+/**
+ * Breaks a Deku Stick if full length.
+ * @return true if holding full-length Deku Stick, otherwise false
+ */
+bool Player_BreakDekuStick(PlayState* play, Player* this) {
+    //! @bug Broken Deku Stick cannot break. Presumably leftover from earlier development.
     if ((this->heldItemAction == PLAYER_IA_DEKU_STICK) && (this->unk_B0C > 0.5f)) {
         if (AMMO(ITEM_DEKU_STICK) != 0) {
             EffectSsStick_Spawn(play, &this->bodyPartsPos[PLAYER_BODYPART_RIGHT_HAND],
@@ -10576,8 +10597,13 @@ bool func_8083FF30(PlayState* play, Player* this) {
     return false;
 }
 
-// handles razor sword health and breaking
-bool func_8083FFEC(PlayState* play, Player* this) {
+/**
+ * If player is using Razor Sword and has hits remaining, damage sword.
+ * Break it (return to Kokiri Sword) if sword health becomes 0.
+ * @return true if holding Razor Sword, otherwise false (regardless of damage/breaking)
+ * (return value is not used)
+ */
+bool Player_DamageRazorSword(PlayState* play, Player* this) {
     if (this->heldItemAction == PLAYER_IA_SWORD_RAZOR) {
         if (gSaveContext.save.saveInfo.playerData.swordHealth > 0) {
             gSaveContext.save.saveInfo.playerData.swordHealth--;
@@ -10595,10 +10621,12 @@ bool func_8083FFEC(PlayState* play, Player* this) {
     return false;
 }
 
-// Could return the last function, but never used as such
-void func_80840094(PlayState* play, Player* this) {
-    func_8083FF30(play, this);
-    func_8083FFEC(play, this);
+/**
+ * Call functions to try breaking Deku Stick and damaging Razor Sword.
+ */
+void Player_DamageMeleeWeapon(PlayState* play, Player* this) {
+    Player_BreakDekuStick(play, this);
+    Player_DamageRazorSword(play, this);
 }
 
 PlayerAnimationHeader* D_8085D294[] = {
@@ -10634,7 +10662,7 @@ void func_808400CC(PlayState* play, Player* this) {
 
     Player_RequestRumble(play, this, 180, 20, 100, SQ(0));
     this->speedXZ = -18.0f;
-    func_80840094(play, this);
+    Player_DamageMeleeWeapon(play, this);
 }
 
 s32 func_808401F4(PlayState* play, Player* this) {
@@ -10726,7 +10754,7 @@ s32 func_808401F4(PlayState* play, Player* this) {
                                         }
                                     }
 
-                                    func_80840094(play, this);
+                                    Player_DamageMeleeWeapon(play, this);
                                     Player_RequestRumble(play, this, 180, 20, 100, SQ(0));
                                     this->speedXZ = -14.0f;
                                 }
@@ -10752,11 +10780,11 @@ s32 func_808401F4(PlayState* play, Player* this) {
                 }
             }
 
-            if (!func_8083FF30(play, this)) {
-                func_8083FFEC(play, this);
+            if (!Player_BreakDekuStick(play, this)) {
+                Player_DamageRazorSword(play, this);
                 if (this->actor.colChkInfo.atHitEffect == 1) {
                     this->actor.colChkInfo.damage = 8;
-                    func_80833B18(play, this, 4, 0.0f, 0.0f, this->actor.shape.rot.y, 20);
+                    Player_HandleDamageHitResponse(play, this, 4, 0.0f, 0.0f, this->actor.shape.rot.y, 20);
                     return true;
                 }
             }
@@ -11088,7 +11116,7 @@ void Player_StartMode_Grotto(PlayState* play, Player* this) {
 }
 
 void Player_StartMode_KnockedOver(PlayState* play, Player* this) {
-    func_80833B18(play, this, 1, 2.0f, 2.0f, this->actor.shape.rot.y + 0x8000, 0);
+    Player_HandleDamageHitResponse(play, this, 1, 2.0f, 2.0f, this->actor.shape.rot.y + 0x8000, 0);
 }
 
 void Player_StartMode_WarpSong(PlayState* play, Player* this) {
@@ -11394,7 +11422,7 @@ void Player_Init(Actor* thisx, PlayState* play) {
             this->actor.params = gSaveContext.respawn[RESPAWN_MODE_UNK_3].playerParams;
         } else {
             if ((respawnFlag == 1) || (respawnFlag == -1)) {
-                this->unk_D6A = -2;
+                this->voidoutDamage = -2;
             }
 
             if (respawnFlag != -7) {
@@ -12534,10 +12562,10 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
     f32 temp_fv1;
 
     sPlayerControlInput = input;
-    if (this->unk_D6A < 0) {
-        this->unk_D6A++;
-        if (this->unk_D6A == 0) {
-            this->unk_D6A = 1;
+    if (this->voidoutDamage < 0) {
+        this->voidoutDamage++;
+        if (this->voidoutDamage == 0) {
+            this->voidoutDamage = 1;
             Audio_PlaySfx(NA_SE_OC_REVENGE);
         }
     }
@@ -12566,8 +12594,8 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         this->invincibilityTimer--;
     }
 
-    if (this->unk_B64 != 0) {
-        this->unk_B64--;
+    if (this->runDamageTimer != 0) {
+        this->runDamageTimer--;
     }
 
     if (this->blastMaskTimer != 0) {
@@ -15549,7 +15577,7 @@ void Player_Action_Jumpdive(Player* this, PlayState* play) {
     if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
         if (this->fallDistance >= 400) {
             this->actor.colChkInfo.damage = 0x10;
-            func_80833B18(play, this, 1, 4.0f, 5.0f, this->actor.shape.rot.y, 20);
+            Player_HandleDamageHitResponse(play, this, 1, 4.0f, 5.0f, this->actor.shape.rot.y, 20);
         } else {
             func_80836B3C(play, this, 4.0f);
         }
@@ -15568,7 +15596,7 @@ void Player_Action_28(Player* this, PlayState* play) {
         if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
             if (this->unk_AAA > 0x36B0) {
                 this->actor.colChkInfo.damage = 0x10;
-                func_80833B18(play, this, 1, 4.0f, 5.0f, this->actor.shape.rot.y, 20);
+                Player_HandleDamageHitResponse(play, this, 1, 4.0f, 5.0f, this->actor.shape.rot.y, 20);
             } else {
                 func_80836B3C(play, this, 4.0f);
             }
@@ -17795,7 +17823,7 @@ AnimSfxEntry D_8085D74C[] = {
     ANIMSFX(ANIMSFX_TYPE_FLOOR_LAND, 120, NA_SE_NONE, STOP),
 };
 
-void Player_Action_65(Player* this, PlayState* play) {
+void Player_Action_GetItem(Player* this, PlayState* play) {
     func_8083249C(this);
 
     if (PlayerAnimation_Update(play, &this->skelAnime)) {
@@ -17844,7 +17872,7 @@ void Player_Action_65(Player* this, PlayState* play) {
                     Player_SetupIdlePlayOnce(this, play);
                 } else {
                     this->actor.colChkInfo.damage = 0;
-                    func_80833B18(play, this, 3, 0.0f, 0.0f, 0, 20);
+                    Player_HandleDamageHitResponse(play, this, 3, 0.0f, 0.0f, 0, 20);
                 }
             } else {
                 if (this->skelAnime.animation == &gPlayerAnim_link_normal_box_kick) {
@@ -18410,7 +18438,11 @@ void Player_Action_BlueWarpArrive(Player* this, PlayState* play) {
     }
 }
 
-void Player_Action_77(Player* this, PlayState* play) {
+/**
+ * Voidout or entering grotto. Not all voidouts are handled by this.
+ * actionVar -1 if FLOOR_PROPERTY_5, otherwise 1. actionVar2 is 9999.
+ */
+void Player_Action_VoidEnterGrotto(Player* this, PlayState* play) {
     if (this->skelAnime.animation == NULL) {
         this->stateFlags2 |= PLAYER_STATE2_4000;
     } else {
@@ -18539,9 +18571,9 @@ void Player_Action_Frozen(Player* this, PlayState* play) {
             }
 
             if (this->transformation == PLAYER_FORM_ZORA) {
-                func_80834104(play, this);
+                Player_SetupVoidEnterGrotto(play, this);
                 this->skelAnime.animation = NULL;
-                this->av2.actionVar2 = -0x28;
+                this->av2.actionVar2 = -40;
                 this->av1.actionVar1 = 1;
                 this->speedXZ = 0.0f;
             } else if (play->gameplayFrames % 4 == 0) {

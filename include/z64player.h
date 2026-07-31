@@ -1249,7 +1249,7 @@ typedef struct Player {
     /* 0xAAA */ s16 unk_AAA;
     /* 0xAAC */ Vec3s headLimbRot;
     /* 0xAB2 */ Vec3s upperLimbRot;
-    /* 0xAB8 */ f32 unk_AB8;
+    /* 0xAB8 */ f32 quicksandEffect; // OoT usage, measure of how large quicksand effect player is under. Affects displacement and movement speed.
     /* 0xABC */ f32 unk_ABC;
     /* 0xAC0 */ f32 unk_AC0;
     /* 0xAC4 */ PlayerUpperActionFunc upperActionFunc; // Upper body/item action functions
@@ -1318,7 +1318,7 @@ typedef struct Player {
     /* 0xB5F */ u8 unk_B5F;
     /* 0xB60 */ u16 blastMaskTimer;
     /* 0xB62 */ s16 unk_B62;
-    /* 0xB64 */ u8 unk_B64;
+    /* 0xB64 */ u8 runDamageTimer; // Frames that player will run with slouched damage posture after taking damage while running
     /* 0xB65 */ u8 bodyShockTimer;
     /* 0xB66 */ u8 unk_B66;
     /* 0xB67 */ u8 remainingHopsCounter; // Deku hopping on water
@@ -1359,8 +1359,8 @@ typedef struct Player {
     /* 0xD64 */ s16 prevControlStickAngle;
     /* 0xD66 */ u16 prevFloorSfxOffset;
     /* 0xD68 */ s16 unk_D68;
-    /* 0xD6A */ s8 unk_D6A;
-    /* 0xD6B */ u8 postReviveFrames;
+    /* 0xD6A */ s8 voidoutDamage; // Used to flag that player shall take voidout damage (one heart)
+    /* 0xD6B */ u8 postReviveFrames; // 20 frames after Fairy revive where certain things cannot take place
     /* 0xD6C */ Vec3f unk_D6C; // previous body part 0 position
 } Player; // size = 0xD78
 
