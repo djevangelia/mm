@@ -221,10 +221,10 @@ s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play);
 s32 Player_UpperAction_StandShield(Player* this, PlayState* play);
 s32 Player_UpperAction_ShieldWaitForBlockAnim(Player* this, PlayState* play);
 s32 Player_UpperAction_StopStandShield(Player* this, PlayState* play);
-s32 Player_UpperAction_6(Player* this, PlayState* play);
-s32 Player_UpperAction_7(Player* this, PlayState* play);
-s32 Player_UpperAction_8(Player* this, PlayState* play);
-s32 Player_UpperAction_9(Player* this, PlayState* play);
+s32 Player_UpperAction_RangedNotAiming(Player* this, PlayState* play);
+s32 Player_UpperAction_RangedLoaded(Player* this, PlayState* play);
+s32 Player_UpperAction_RangedNotLoaded(Player* this, PlayState* play);
+s32 Player_UpperAction_RangedWaitForPutDownAnim(Player* this, PlayState* play);
 s32 Player_UpperAction_CarryActor(Player* this, PlayState* play);
 s32 Player_UpperAction_11(Player* this, PlayState* play);
 s32 Player_UpperAction_12(Player* this, PlayState* play);
@@ -3139,16 +3139,16 @@ PlayerUpperActionFunc sItemActionUpdateFuncs[PLAYER_IA_MAX] = {
     Player_UpperAction_1,          // PLAYER_IA_SWORD_TWO_HANDED
     Player_UpperAction_0,          // PLAYER_IA_DEKU_STICK
     Player_UpperAction_0,          // PLAYER_IA_ZORA_BOOMERANG
-    Player_UpperAction_6,          // PLAYER_IA_BOW
-    Player_UpperAction_6,          // PLAYER_IA_BOW_FIRE
-    Player_UpperAction_6,          // PLAYER_IA_BOW_ICE
-    Player_UpperAction_6,          // PLAYER_IA_BOW_LIGHT
-    Player_UpperAction_6,          // PLAYER_IA_HOOKSHOT
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_BOW
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_BOW_FIRE
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_BOW_ICE
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_BOW_LIGHT
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_HOOKSHOT
     Player_UpperAction_CarryActor, // PLAYER_IA_BOMB
     Player_UpperAction_CarryActor, // PLAYER_IA_POWDER_KEG
     Player_UpperAction_CarryActor, // PLAYER_IA_BOMBCHU
     Player_UpperAction_11,         // PLAYER_IA_11
-    Player_UpperAction_6,          // PLAYER_IA_DEKU_NUT
+    Player_UpperAction_RangedNotAiming,          // PLAYER_IA_DEKU_NUT
     Player_UpperAction_0,          // PLAYER_IA_PICTOGRAPH_BOX
     Player_UpperAction_0,          // PLAYER_IA_OCARINA
     Player_UpperAction_0,          // PLAYER_IA_BOTTLE_EMPTY
@@ -4043,7 +4043,7 @@ s32 func_808306F8(Player* this, PlayState* play) {
         (gSaveContext.magicState != MAGIC_STATE_IDLE)) {
         Audio_PlaySfx(NA_SE_SY_ERROR);
     } else {
-        Player_SetUpperAction(play, this, Player_UpperAction_7);
+        Player_SetUpperAction(play, this, Player_UpperAction_RangedLoaded);
 
         this->stateFlags3 |= PLAYER_STATE3_40;
         this->unk_ACC = 14;
@@ -14103,7 +14103,7 @@ s32 Player_UpperAction_StopStandShield(Player* this, PlayState* play) {
     return true;
 }
 
-s32 Player_UpperAction_6(Player* this, PlayState* play) {
+s32 Player_UpperAction_RangedNotAiming(Player* this, PlayState* play) {
     if (this->unk_B28 >= 0) {
         this->unk_B28 = -this->unk_B28;
     }
@@ -14135,7 +14135,7 @@ u16 D_8085D5FC[] = {
     NA_SE_NONE,
 };
 
-s32 Player_UpperAction_7(Player* this, PlayState* play) {
+s32 Player_UpperAction_RangedLoaded(Player* this, PlayState* play) {
     s32 index;
     s32 temp;
 
@@ -14168,7 +14168,7 @@ s32 Player_UpperAction_7(Player* this, PlayState* play) {
 
     func_80831010(this, play);
     if ((this->unk_ACE > 0) && ((this->unk_B28 < 0) || (!sPlayerHeldItemButtonIsHeldDown && !func_80830FD4(play)))) {
-        Player_SetUpperAction(play, this, Player_UpperAction_8);
+        Player_SetUpperAction(play, this, Player_UpperAction_RangedNotLoaded);
         if (this->unk_B28 >= 0) {
             if (index != 0) {
                 if (!func_80831194(play, this)) {
@@ -14192,7 +14192,7 @@ s32 Player_UpperAction_7(Player* this, PlayState* play) {
     return 1;
 }
 
-s32 Player_UpperAction_8(Player* this, PlayState* play) {
+s32 Player_UpperAction_RangedNotLoaded(Player* this, PlayState* play) {
     s32 animFinished = PlayerAnimation_Update(play, &this->skelAnimeUpper);
 
     if (Player_IsHoldingHookshot(this) && !func_80831124(play, this)) {
@@ -14229,9 +14229,9 @@ s32 Player_UpperAction_8(Player* this, PlayState* play) {
         }
 
         if (Player_IsHoldingHookshot(this)) {
-            Player_SetUpperAction(play, this, Player_UpperAction_6);
+            Player_SetUpperAction(play, this, Player_UpperAction_RangedNotAiming);
         } else {
-            Player_SetUpperAction(play, this, Player_UpperAction_9);
+            Player_SetUpperAction(play, this, Player_UpperAction_RangedWaitForPutDownAnim);
             PlayerAnimation_PlayOnce(play, &this->skelAnimeUpper,
                                      (this->transformation == PLAYER_FORM_DEKU) ? &gPlayerAnim_pn_tamahakidf
                                                                                 : &gPlayerAnim_link_bow_bow_shoot_end);
@@ -14242,9 +14242,9 @@ s32 Player_UpperAction_8(Player* this, PlayState* play) {
     return true;
 }
 
-s32 Player_UpperAction_9(Player* this, PlayState* play) {
+s32 Player_UpperAction_RangedWaitForPutDownAnim(Player* this, PlayState* play) {
     if (!(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) || PlayerAnimation_Update(play, &this->skelAnimeUpper)) {
-        Player_SetUpperAction(play, this, Player_UpperAction_6);
+        Player_SetUpperAction(play, this, Player_UpperAction_RangedNotAiming);
     }
     return true;
 }
