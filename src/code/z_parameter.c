@@ -3233,7 +3233,7 @@ void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     }
 }
 
-s32 Inventory_ConsumeFairy(PlayState* play) {
+s32 Inventory_FairyCanRevive(PlayState* play) {
     u8 bottleSlot = SLOT(ITEM_FAIRY);
     u8 btn;
     u8 i;

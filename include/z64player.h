@@ -603,6 +603,21 @@ typedef enum PlayerStickDirection {
 // TODO: less dumb name
 #define SFX_VOICE_BANK_SIZE 0x20
 
+typedef enum PlayerKnockbackType {
+    /* 0 */ PLAYER_KNOCKBACK_NONE, // No knockback
+    /* 1 */ PLAYER_KNOCKBACK_SMALL, // A small hop, remains standing up
+    /* 2 */ PLAYER_KNOCKBACK_LARGE, // Sent flying in the air and lands laying down on the floor
+    /* 3 */ PLAYER_KNOCKBACK_LARGE_ELECTRIFIED // Same as`PLAYER_KNOCKBACK_LARGE` with a shock effect
+} PlayerKnockbackType;
+
+typedef enum PlayerHitResponseType {
+    /* 0 */ PLAYER_HIT_RESPONSE_NONE,
+    /* 1 */ PLAYER_HIT_RESPONSE_KNOCKBACK_LARGE,
+    /* 2 */ PLAYER_HIT_RESPONSE_KNOCKBACK_SMALL,
+    /* 3 */ PLAYER_HIT_RESPONSE_FROZEN,
+    /* 4 */ PLAYER_HIT_RESPONSE_ELECTRIFIED
+} PlayerHitResponseType;
+
 typedef struct PlayerAgeProperties {
     /* 0x00 */ f32 ceilingCheckHeight;
     /* 0x04 */ f32 shadowScale;
@@ -1264,7 +1279,7 @@ typedef struct Player {
     /* 0xADA */ s8 meleeWeaponAnimation;
     /* 0xADB */ s8 meleeWeaponState;
     /* 0xADC */ s8 unk_ADC;
-    /* 0xADD */ s8 unk_ADD; // Some sort of combo counter
+    /* 0xADD */ s8 tripleSlashCount;// Used for making the third attack in a row special "triple slash"
     /* 0xADE */ u8 controlStickDataIndex; // cycles between 0 - 3. Used to index `controlStickSpinAngles` and `controlStickDirections`
     /* 0xADF */ s8 controlStickSpinAngles[4]; // Stores a modified version of the control stick angle for the last 4 frames. Used for checking spins.
     /* 0xAE3 */ s8 controlStickDirections[4]; // Stores the control stick direction (relative to shape yaw) for the last 4 frames. See `PlayerStickDirection`.
@@ -1273,16 +1288,19 @@ typedef struct Player {
         s8 startedAnim; // Player_Action_TimeTravelEnd: Started playing the animation that was previously frozen
         s8 facingUpSlope; // Player_Action_SlideOnSlope: Facing uphill when sliding on a slope
         s8 hasBottledFairy; // Player_DeathRevival, Player_Action_Death (Ground/Water): Player has died with a bottled fairy that will revive the player
+        s8 isCrouchStabbing; // Player_Action_ShieldCrouch: Player is currently crouch stabbing
         s8 crouchShielding; // Player_Action_ShieldBlock: Player is currently crouching and shielding (not standing up i.e. not target/parallel)
         s8 messageItemSfxDone; // Player_GetItemTextboxSfx: Player has received textbox, item and sfx for get item
     } av1; // "Action Variable 1": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAE8 */ union {
         s16 actionVar2;
         s16 fallDamageStunTimer; // Player_Action_Idle: Prevents any movement and shakes model up and down quickly to indicate fall damage stun
+        s16 bonked; // Player_Action_Roll: Set to true after bonking into a wall or an actor
         s16 animDelayTimer; // Player_Action_TimeTravelEnd: Delays playing animation until finished counting down
         s16 csDelayTimer; // Player_Action_WaitForCutscene: Number of frames to wait before responding to a cutscene
         s16 playedLandingSfx; // Player_Action_BlueWarpArrive: Played sfx when landing on the ground
         s16 fairyReviveTimer; // Player_DeathRevival: Timer for bottled fairy revival sequence (60 frames)
+        s16 startShieldFinish; // Player_Action_ShieldCrouch: Starting shield animation has finished
         s16 waitForAnimDone; // Player_Action_IdleHostile: Used to ensure previously started animation finishes before starting idle animation.
         s16 firstPersonAimDelay; // Player_Action_InFirstPerson: Delay from entering first person mode and able to aim with ranged weapon
         s16 dismountDown; // Player_Action_DismountLadder: True if player is dismounting the ladder downwards
@@ -1329,7 +1347,7 @@ typedef struct Player {
     /* 0xB70 */ s16 unk_B70;
     /* 0xB72 */ u16 floorSfxOffset;
     /* 0xB74 */ u8 unk_B74;
-    /* 0xB75 */ u8 unk_B75;
+    /* 0xB75 */ u8 knockbackType;
     /* 0xB76 */ s16 unk_B76;
     /* 0xB78 */ f32 unk_B78;
     /* 0xB7C */ f32 unk_B7C;

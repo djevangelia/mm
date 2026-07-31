@@ -292,7 +292,7 @@ void Inventory_UpdateDeitySwordEquip(struct PlayState* play);
 s32 Inventory_HasEmptyBottle(void);
 s32 Inventory_HasItemInBottle(u8 item);
 void Inventory_UpdateBottleItem(struct PlayState* play, u8 item, u8 btn);
-s32 Inventory_ConsumeFairy(struct PlayState* play);
+s32 Inventory_FairyCanRevive(struct PlayState* play);
 void Inventory_UpdateItem(struct PlayState* play, s16 slot, s16 item);
 void Interface_SetAButtonDoAction(struct PlayState* play, u16 aButtonDoAction);
 void Interface_SetBButtonPlayerDoAction(struct PlayState* play, s16 bButtonDoAction);

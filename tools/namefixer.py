@@ -723,7 +723,7 @@ wordReplace = {
     "Interface_HasEmptyBottle": "Inventory_HasEmptyBottle",
     "Interface_HasItemInBottle": "Inventory_HasItemInBottle",
     "func_80114FD0": "Inventory_UpdateBottleItem",
-    "func_80115130": "Inventory_ConsumeFairy",
+    "func_80115130": "Inventory_FairyCanRevive",
     "func_801152B8": "Inventory_UpdateItem",
     "func_80115908": "Health_ChangeBy",
     "func_801159C0": "Health_GiveHearts",
