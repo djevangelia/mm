@@ -218,9 +218,9 @@ void Player_Action_CsAction(Player* this, PlayState* play);
 s32 Player_UpperAction_0(Player* this, PlayState* play);
 s32 Player_UpperAction_1(Player* this, PlayState* play);
 s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play);
-s32 Player_UpperAction_3(Player* this, PlayState* play);
-s32 Player_UpperAction_4(Player* this, PlayState* play);
-s32 Player_UpperAction_5(Player* this, PlayState* play);
+s32 Player_UpperAction_StandShield(Player* this, PlayState* play);
+s32 Player_UpperAction_ShieldWaitForBlockAnim(Player* this, PlayState* play);
+s32 Player_UpperAction_StopStandShield(Player* this, PlayState* play);
 s32 Player_UpperAction_6(Player* this, PlayState* play);
 s32 Player_UpperAction_7(Player* this, PlayState* play);
 s32 Player_UpperAction_8(Player* this, PlayState* play);
@@ -4147,8 +4147,8 @@ PlayerAnimationHeader* D_8085CFDC[2] = {
     &gPlayerAnim_link_fighter_defense_long_hit,
 };
 
-PlayerAnimationHeader* func_80830A58(PlayState* play, Player* this) {
-    Player_SetUpperAction(play, this, Player_UpperAction_3);
+PlayerAnimationHeader* Player_StandShieldSelectAnim(PlayState* play, Player* this) {
+    Player_SetUpperAction(play, this, Player_UpperAction_StandShield);
     Player_DetachHeldActor(play, this);
 
     if (this->forwardFootWeight < 0.5f) {
@@ -4174,7 +4174,11 @@ void func_80830B38(Player* this) {
     Player_PlaySfx(this, sfxId);
 }
 
-s32 func_80830B88(PlayState* play, Player* this) {
+/**
+ * Sets up first frame shielding with a Z-target/in parallel.
+ * @return true if starting shielding, otherwise false
+ */
+s32 Player_StartStandShield(PlayState* play, Player* this) {
     if (CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_R)) {
         if (!(this->stateFlags1 & (PLAYER_STATE1_400000 | PLAYER_STATE1_800000 | PLAYER_STATE1_20000000))) {
             if (!(this->stateFlags1 & PLAYER_STATE1_IN_WATER) || ((this->currentBoots >= PLAYER_BOOTS_ZORA_UNDERWATER) &&
@@ -4187,7 +4191,7 @@ s32 func_80830B88(PlayState* play, Player* this) {
                           ((this->transformation == PLAYER_FORM_HUMAN) &&
                            (this->currentShield != PLAYER_SHIELD_NONE))) &&
                          Player_IsZTargeting(this))) {
-                        PlayerAnimationHeader* anim = func_80830A58(play, this);
+                        PlayerAnimationHeader* anim = Player_StandShieldSelectAnim(play, this);
                         f32 endFrame = Animation_GetLastFrame(anim);
 
                         PlayerAnimation_Change(play, &this->skelAnimeUpper, anim, PLAYER_ANIM_NORMAL_SPEED, endFrame,
@@ -4203,8 +4207,12 @@ s32 func_80830B88(PlayState* play, Player* this) {
     return false;
 }
 
-void func_80830CE8(PlayState* play, Player* this) {
-    Player_SetUpperAction(play, this, Player_UpperAction_5);
+/**
+ * Drop shield with Z-target/in parallel. Set new upper action function,
+ * item action, animation and sound.
+ */
+void Player_StopStandShield(PlayState* play, Player* this) {
+    Player_SetUpperAction(play, this, Player_UpperAction_StopStandShield);
 
     if (this->itemAction <= PLAYER_IA_MINUS1) {
         func_80123C58(this);
@@ -4229,7 +4237,11 @@ void Player_WaitToFinishItemChange(PlayState* play, Player* this) {
     Player_UpdateHostileLockOn(this);
 }
 
-s32 func_80830DF0(Player* this, PlayState* play) {
+/**
+ * Called only by Player_UpperAction_Sword.
+ * @return true if starting, else false
+ */
+s32 Player_IsStartingItemChange(Player* this, PlayState* play) {
     if (this->stateFlags3 & PLAYER_STATE3_START_CHANGING_HELD_ITEM) {
         Player_StartChangingHeldItem(this, play);
     } else {
@@ -6160,7 +6172,7 @@ s32 func_80834600(Player* this, PlayState* play) {
 
             this->av1.actionVar1 = sp64;
             if ((s8)sp64 == 0) {
-                Player_SetUpperAction(play, this, Player_UpperAction_4);
+                Player_SetUpperAction(play, this, Player_UpperAction_ShieldWaitForBlockAnim);
                 var_a2 = (this->forwardFootWeight < 0.5f) ? D_8085CFD4[Player_IsHoldingTwoHandedWeapon(this)]
                                                 : D_8085CFCC[Player_IsHoldingTwoHandedWeapon(this)];
                 PlayerAnimation_PlayOnce(play, &this->skelAnimeUpper, var_a2);
@@ -13983,20 +13995,31 @@ void func_80848640(PlayState* play, Player* this) {
 }
 
 s32 Player_UpperAction_0(Player* this, PlayState* play) {
-    if (func_80830B88(play, this)) {
+    if (Player_StartStandShield(play, this)) {
         return true;
     }
     return false;
 }
 
+/**
+ * The actual sword weapon is not handled here. See `Player_ActionHandler_7` for melee weapon usage.
+ * This upper body action allows for shielding or changing held items while a sword is in hand.
+ */
 s32 Player_UpperAction_1(Player* this, PlayState* play) {
-    if (func_80830B88(play, this) || func_80830DF0(this, play)) {
+    if (Player_StartStandShield(play, this) || Player_IsStartingItemChange(this, play)) {
         return true;
     }
     return false;
 }
 
+/**
+ * 1) Call Player_WaitToFinishItemChange every frame, which will finish the item change when change item animation
+ * has reached set frame
+ * 2) When item change finished, set correct upper action, use the item, and run the new upper action.
+ * @return always true
+ */
 s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play) {
+    // 2) Item change finished
     if (PlayerAnimation_Update(play, &this->skelAnimeUpper) ||
         ((Player_ItemToItemAction(this, this->heldItemId) == this->heldItemAction) &&
          (sPlayerUseHeldItem = (sPlayerUseHeldItem || ((this->modelAnimType != PLAYER_ANIMTYPE_3) &&
@@ -14006,9 +14029,11 @@ s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play) {
         this->unk_ACC = 0;
         this->idleType = PLAYER_IDLE_DEFAULT;
         sPlayerHeldItemButtonIsHeldDown = sPlayerUseHeldItem;
-        return this->upperActionFunc(this, play);
+
+        return this->upperActionFunc(this, play); // Directly run the new upper action function
     }
 
+    // 1) Run Player_WaitToFinishItemChange
     if (Player_CheckForIdleAnim(this) != IDLE_ANIM_NONE) {
         Player_WaitToFinishItemChange(play, this);
         Player_Anim_PlayOnce(play, this, Player_GetIdleAnim(this));
@@ -14020,10 +14045,14 @@ s32 Player_UpperAction_ChangeHeldItem(Player* this, PlayState* play) {
     return true;
 }
 
-s32 Player_UpperAction_3(Player* this, PlayState* play) {
+/**
+ * Actively shielding.
+ * @return always true
+ */
+s32 Player_UpperAction_StandShield(Player* this, PlayState* play) {
     PlayerAnimation_Update(play, &this->skelAnimeUpper);
-    if (!CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_R)) {
-        func_80830CE8(play, this);
+    if (!CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_R)) { // Stop shielding
+        Player_StopStandShield(play, this);
     } else {
         this->stateFlags1 |= PLAYER_STATE1_400000;
         Player_SetModelsForHoldingShield(this);
@@ -14034,12 +14063,18 @@ s32 Player_UpperAction_3(Player* this, PlayState* play) {
     return true;
 }
 
-s32 Player_UpperAction_4(Player* this, PlayState* play) {
+/**
+ * Set after blocking with shield if in Z-target/in parallel. Wait for animation
+ * started in previous function to finish, then set new animation and upper action.
+ * @return always true
+ */
+s32 Player_UpperAction_ShieldWaitForBlockAnim(Player* this, PlayState* play) {
+    // Block animation finished, set new animation
     if (PlayerAnimation_Update(play, &this->skelAnimeUpper)) {
         PlayerAnimationHeader* anim;
         f32 endFrame;
 
-        anim = func_80830A58(play, this);
+        anim = Player_StandShieldSelectAnim(play, this);
         endFrame = Animation_GetLastFrame(anim);
         PlayerAnimation_Change(play, &this->skelAnimeUpper, anim, PLAYER_ANIM_NORMAL_SPEED, endFrame, endFrame,
                                ANIMMODE_ONCE, 0.0f);
@@ -14050,13 +14085,19 @@ s32 Player_UpperAction_4(Player* this, PlayState* play) {
     return true;
 }
 
-s32 Player_UpperAction_5(Player* this, PlayState* play) {
+/**
+ * Set new upper action to held item's update function when animation is finished
+ * or player uses held item. Run the new function.
+ * @return false if changed to new upper action function, otherwise true
+ */
+s32 Player_UpperAction_StopStandShield(Player* this, PlayState* play) {
     sPlayerUseHeldItem = sPlayerHeldItemButtonIsHeldDown;
+
     if (sPlayerUseHeldItem || PlayerAnimation_Update(play, &this->skelAnimeUpper)) {
         Player_SetUpperAction(play, this, sItemActionUpdateFuncs[this->heldItemAction]);
         PlayerAnimation_PlayLoop(play, &this->skelAnimeUpper, D_8085BE84[PLAYER_ANIMGROUP_wait][this->modelAnimType]);
         this->idleType = PLAYER_IDLE_DEFAULT;
-        this->upperActionFunc(this, play);
+        this->upperActionFunc(this, play); // Run the new upper action function immediately
         return false;
     }
     return true;
@@ -14068,7 +14109,7 @@ s32 Player_UpperAction_6(Player* this, PlayState* play) {
     }
 
     if (!Player_IsHoldingHookshot(this) || func_80831124(play, this)) {
-        if (!func_80830B88(play, this) && !func_80831094(this, play)) {
+        if (!Player_StartStandShield(play, this) && !func_80831094(this, play)) {
             return false;
         }
     }
@@ -14158,7 +14199,7 @@ s32 Player_UpperAction_8(Player* this, PlayState* play) {
         return true;
     }
 
-    if (!func_80830B88(play, this) &&
+    if (!Player_StartStandShield(play, this) &&
         ((((this->unk_B28 < 0) && sPlayerHeldItemButtonIsHeldDown) ||
           ((animFinished || (this->transformation != PLAYER_FORM_DEKU)) && sPlayerUseHeldItem)) ||
          func_80830F9C(play))) {
@@ -14215,7 +14256,7 @@ s32 Player_UpperAction_CarryActor(Player* this, PlayState* play) {
         func_808309CC(play, this);
     }
 
-    if (func_80830B88(play, this)) {
+    if (Player_StartStandShield(play, this)) {
         return true;
     }
 
@@ -14235,7 +14276,7 @@ s32 Player_UpperAction_CarryActor(Player* this, PlayState* play) {
 }
 
 s32 Player_UpperAction_11(Player* this, PlayState* play) {
-    if (func_80830B88(play, this)) {
+    if (Player_StartStandShield(play, this)) {
         return true;
     }
 
@@ -14332,7 +14373,7 @@ s32 Player_UpperAction_14(Player* this, PlayState* play) {
 }
 
 s32 Player_UpperAction_15(Player* this, PlayState* play) {
-    if (func_80830B88(play, this)) {
+    if (Player_StartStandShield(play, this)) {
         return true;
     }
 
@@ -14481,7 +14522,7 @@ void Player_Action_IdleHostile(Player* this, PlayState* play) {
 
     // Check if target change
     if (!Player_UpdateHostileLockOn(this) &&
-        (!Player_FriendlyLockOnOrParallel(this) || (Player_UpperAction_3 != this->upperActionFunc))) {
+        (!Player_FriendlyLockOnOrParallel(this) || (Player_UpperAction_StandShield != this->upperActionFunc))) {
         func_8083B29C(this, play);
         return;
     }
@@ -14550,7 +14591,7 @@ void Player_Action_IdleParallel(Player* this, PlayState* play) {
         this->yaw = this->actor.shape.rot.y;
         return;
     }
-    if (Player_UpperAction_3 == this->upperActionFunc) {
+    if (Player_UpperAction_StandShield == this->upperActionFunc) {
         Player_SetupIdleHostile(this, play);
         return;
     }
@@ -15263,7 +15304,7 @@ void Player_Action_ShieldBlock(Player* this, PlayState* play) {
 
     if (this->av1.crouchShielding == false) {
         sUpperBodyIsBusy = Player_UpdateUpperBody(this, play);
-        if ((Player_UpperAction_3 == this->upperActionFunc) ||
+        if ((Player_UpperAction_StandShield == this->upperActionFunc) ||
             (Player_TryActionInterrupt(play, this, &this->skelAnimeUpper, 4.0f) >= PLAYER_INTERRUPT_MOVE)) {
             Player_SetAction(play, this, Player_Action_IdleHostile, 1);
         }
