@@ -2107,7 +2107,7 @@ void Player_AdjustSingleLeg(PlayState* play, Player* player, SkelAnime* skelAnim
 
     sp74 = D_801C0910[player->transformation];
     sp70 = D_801C0924[player->transformation];
-    sp7C = D_801C0938[player->transformation] - player->unk_AB8;
+    sp7C = D_801C0938[player->transformation] - player->quicksandEffect;
     Matrix_Push();
     Matrix_TranslateRotateZYX(pos, rot);
     Matrix_MultZero(&sp90);
@@ -2385,7 +2385,7 @@ s32 Player_OverrideLimbDrawGameplayCommon(PlayState* play, s32 limbIndex, Gfx** 
             }
         }
 
-        pos->y -= player->unk_AB8;
+        pos->y -= player->quicksandEffect;
         if ((player->transformation == PLAYER_FORM_ZORA) && (player->stateFlags3 & PLAYER_STATE3_8000)) {
             Matrix_Translate(pos->x, ((Math_CosS(player->unk_AAA) - 1.0f) * 200.0f) + pos->y, pos->z, MTXMODE_APPLY);
             Matrix_RotateXS(player->unk_AAA, MTXMODE_APPLY);
@@ -2981,9 +2981,9 @@ void func_80126AB4(Player* player, Vec3f** arg1) {
 
     D_801C0994[1].x = D_801C0994[0].x;
 
-    if (player->unk_ADD >= 3) {
-        player->unk_ADD++;
-        D_801C0994[1].x *= 1.0f + ((9 - player->unk_ADD) * 0.1f);
+    if (player->tripleSlashCount >= 3) {
+        player->tripleSlashCount++;
+        D_801C0994[1].x *= 1.0f + ((9 - player->tripleSlashCount) * 0.1f);
     }
 
     D_801C0994[1].x += 1200.0f;
@@ -3795,7 +3795,7 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList1, G
 
                 Matrix_Push();
                 Matrix_Translate(D_801C0D98.x, D_801C0D98.y, D_801C0D98.z, MTXMODE_APPLY);
-                if ((player->stateFlags3 & PLAYER_STATE3_40) && (player->unk_B28 >= 0) && (player->unk_ACC < 0xB)) {
+                if ((player->stateFlags3 & PLAYER_STATE3_40) && (player->unk_B28 >= 0) && (player->rangedAimingOrLoaded < 0xB)) {
                     Vec3f sp20C;
                     f32 temp_fv0;
                     s32 pad2;

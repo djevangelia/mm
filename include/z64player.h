@@ -1269,7 +1269,7 @@ typedef struct Player {
     /* 0xAC0 */ f32 unk_AC0;
     /* 0xAC4 */ PlayerUpperActionFunc upperActionFunc; // Upper body/item action functions
     /* 0xAC8 */ f32 skelAnimeUpperBlendWeight;
-    /* 0xACC */ s16 unk_ACC;
+    /* 0x0834 */ s16 rangedAimingOrLoaded;  // Used by Bow, Slingshot, Boomerang, Hookshot. 0 = not aiming a ranged weapon. >0 = aiming. 10 = loaded and ready to fire.
     /* 0xACE */ s8 unk_ACE;
     /* 0xACF */ u8 putAwayCooldownTimer; // Frames to wait before showing "Put Away" on A
     /* 0xAD0 */ f32 speedXZ; // Controls horizontal speed, used for `actor.speed`. Current or target value depending on context.
@@ -1292,6 +1292,7 @@ typedef struct Player {
         s8 isCrouchStabbing; // Player_Action_ShieldCrouch: Player is currently crouch stabbing
         s8 crouchShielding; // Player_Action_ShieldBlock: Player is currently crouching and shielding (not standing up i.e. not target/parallel)
         s8 messageItemSfxDone; // Player_GetItemTextboxSfx: Player has received textbox, item and sfx for get item
+        s8 isClimbWall; // Player_Action_Climbing: True if climbed wall is a climbable wall and not ladder
     } av1; // "Action Variable 1": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAE8 */ union {
         s16 actionVar2;
@@ -1308,6 +1309,8 @@ typedef struct Player {
         s16 firstPersonAimDelay; // Player_Action_InFirstPerson: Delay from entering first person mode and able to aim with ranged weapon
         s16 dismountDown; // Player_Action_DismountLadder: True if player is dismounting the ladder downwards
         s16 plantBeanTimer; // Player_Action_PlantMagicBean: Timer for planting bean sequence (80 frames)
+        s16 climbAnimFinished; // Player_Action_Climbing: Negative if start climb animation has not finished yet
+        s16 leftFootAbove; // Player_Action_Climbing: 1 = left foot higher up during climb
     } av2; // "Action Variable 2": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAEC */ f32 unk_AEC;
     /* 0xAF0 */ union {

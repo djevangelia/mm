@@ -1414,7 +1414,7 @@ bool func_800B7118(Player* player) {
 }
 
 bool func_800B7128(Player* player) {
-    return func_800B7118(player) && (player->unk_ACC != 0);
+    return func_800B7118(player) && (player->rangedAimingOrLoaded != 0);
 }
 
 bool func_800B715C(PlayState* play) {
@@ -2323,11 +2323,11 @@ s32 Actor_HasNoRider(PlayState* play, Actor* horse) {
     return false;
 }
 
-void func_800B8D10(PlayState* play, Actor* actor, f32 arg2, s16 arg3, f32 arg4, s32 arg5, u32 arg6) {
+void func_800B8D10(PlayState* play, Actor* actor, f32 arg2, s16 arg3, f32 arg4, s32 knockbackType, u32 arg6) {
     Player* player = GET_PLAYER(play);
 
     player->unk_B74 = arg6;
-    player->unk_B75 = arg5;
+    player->knockbackType = knockbackType;
     player->unk_B78 = arg2;
     player->unk_B76 = arg3;
     player->unk_B7C = arg4;
