@@ -2940,7 +2940,7 @@ void Player_SetCylinderForAttack(Player* this, u32 dmgFlags, s32 damage, s32 rad
 }
 
 // Check for starting Zora barrier
-void func_8082F164(Player* this, u16 button) {
+void Player_TryZoraShieldBarrier(Player* this, u16 button) {
     if ((this->transformation == PLAYER_FORM_ZORA) && CHECK_BTN_ALL(sPlayerControlInput->cur.button, button)) {
         this->stateFlags1 |= PLAYER_STATE1_10;
     }
@@ -4503,6 +4503,10 @@ s32 Player_SetAction(PlayState* play, Player* this, PlayerActionFunc actionFunc,
     return true;
 }
 
+/**
+ * Calls `Player_SetupAction` to setup a new action, but takes extra measures to
+ * preserve AnimMovement while doing so.
+ */
 void Player_SetAction_PreserveMoveFlags(PlayState* play, Player* this, PlayerActionFunc actionFunc, s32 arg3) {
     s32 savedMovementFlags = this->skelAnime.movementFlags;
 
@@ -4511,14 +4515,23 @@ void Player_SetAction_PreserveMoveFlags(PlayState* play, Player* this, PlayerAct
     this->skelAnime.movementFlags = savedMovementFlags;
 }
 
+/**
+ * Calls `Player_SetupAction` to setup a new action, but takes extra measures to
+ * preserve the current itemAction while doing so.
+ *
+ * Note that player must NOT be shielding (IA = -1) for the action change to take place, and that the function
+ * does not return to the caller whether Player_SetupAction was actually called.
+ */
 void Player_SetAction_PreserveItemAction(PlayState* play, Player* this, PlayerActionFunc actionFunc, s32 arg3) {
     if (this->itemAction > PLAYER_IA_MINUS1) {
         PlayerItemAction heldItemAction = this->itemAction;
 
+        // Setting `itemAction` to `heldItemAction` will prevent `Player_RestoreHeldIA` from running when
+        // `Player_SetupAction` is called.
         this->itemAction = this->heldItemAction;
+
         Player_SetAction(play, this, actionFunc, arg3);
         this->itemAction = heldItemAction;
-
         Player_SetModels(this, Player_ActionToModelGroup(this, this->itemAction));
     }
 }
@@ -4686,11 +4699,16 @@ void Player_UseItem(PlayState* play, Player* this, ItemId item) {
     }
 }
 
+/**
+ * Selects death action depending on if player is swimming or on ground/wearing Iron Boots
+ * Starts given death animation
+ * Also checks for Fairy in bottle for revival
+ */
 void Player_SetupDeath(PlayState* play, Player* this, PlayerAnimationHeader* anim) {
-    s32 sp24 = func_801242B4(this);
+    s32 waterDeath = func_801242B4(this);
 
     Player_ResetStatesHeldActor(play, this);
-    Player_SetAction(play, this, sp24 ? Player_Action_DeathWater : Player_Action_DeathGround, 0);
+    Player_SetAction(play, this, waterDeath ? Player_Action_DeathWater : Player_Action_DeathGround, 0);
     Player_Anim_PlayOnce(play, this, anim);
 
     if (anim == &gPlayerAnim_link_derth_rebirth) {
@@ -4830,7 +4848,7 @@ bool func_8083249C(Player* this) {
  *
  * This will also initiate a cutscene with the cutscene id provided.
  *
- * @return  From `Player_PutAwayHeldItem`: true if an item needs to be put away, false if not.
+ * @return From `Player_PutAwayHeldItem`: true if an item needs to be put away, false if not.
  */
 s32 Player_SetupWaitForPutAwayWithCs(PlayState* play, Player* this, AfterPutAwayFunc afterPutAwayFunc, s32 csId) {
     this->afterPutAwayFunc = afterPutAwayFunc;
@@ -4849,7 +4867,7 @@ s32 Player_SetupWaitForPutAwayWithCs(PlayState* play, Player* this, AfterPutAway
  * The function provided by the `afterPutAwayFunc` argument will run after the put away is complete.
  * This function is expected to set a new action and move execution away from `Player_Action_WaitForPutAway`.
  *
- * @return  From `Player_PutAwayHeldItem`: true if an item needs to be put away, false if not.
+ * @return From `Player_PutAwayHeldItem`: true if an item needs to be put away, false if not.
  */
 s32 Player_SetupWaitForPutAway(PlayState* play, Player* this, AfterPutAwayFunc afterPutAwayFunc) {
     return Player_SetupWaitForPutAwayWithCs(play, this, afterPutAwayFunc, CS_ID_NONE);
@@ -7373,6 +7391,7 @@ s32 Player_SpawnWaterSplash(PlayState* play, Player* this, f32 velocity, s32 sca
     return false;
 }
 
+// MM only?
 s32 func_8083784C(Player* this) {
     if (this->actor.velocity.y < 0.0f) {
         if ((this->actor.depthInWater > 0.0f) &&
@@ -7389,6 +7408,7 @@ s32 func_8083784C(Player* this) {
     return false;
 }
 
+// Walk off water ledge as Deku?
 void func_808378FC(PlayState* play, Player* this) {
     if (!Player_IsZTargetingWithHostileUpdate(this)) {
         this->stateFlags2 |= PLAYER_STATE2_20;
@@ -14103,7 +14123,7 @@ s32 Player_UpperAction_StandShield(Player* this, PlayState* play) {
         this->stateFlags1 |= PLAYER_STATE1_400000;
         Player_SetModelsForHoldingShield(this);
         if ((this->transformation == PLAYER_FORM_ZORA) && CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_B)) {
-            func_8082F164(this, BTN_R | BTN_B);
+            Player_TryZoraShieldBarrier(this, BTN_R | BTN_B);
         }
     }
     return true;
@@ -15267,7 +15287,7 @@ void Player_Action_ShieldCrouch(Player* this, PlayState* play) {
         Player_UpdateUpperBody(this, play);
         this->stateFlags1 &= ~PLAYER_STATE1_400000;
         if (this->transformation == PLAYER_FORM_ZORA) {
-            func_8082F164(this, BTN_R | BTN_B);
+            Player_TryZoraShieldBarrier(this, BTN_R | BTN_B);
         }
     }
 
@@ -15762,7 +15782,7 @@ void Player_Action_28(Player* this, PlayState* play) {
         } else {
             this->actor.gravity = -1.0f;
             this->unk_AAA = Math_Atan2S_XY(this->actor.speed, -this->actor.velocity.y);
-            func_8082F164(this, BTN_R);
+            Player_TryZoraShieldBarrier(this, BTN_R);
         }
     }
 }
@@ -17269,7 +17289,7 @@ void Player_Action_WaterIdle(Player* this, PlayState* play) {
         this->av2.actionVar2--;
     }
 
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
 
     if (CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_A)) {
         this->av2.actionVar2 = 0;
@@ -17360,7 +17380,7 @@ void Player_Action_56(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20;
 
     func_808475B4(this);
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
 
     if (Player_TryActionHandlerList(play, this, sActionHandlerList11, false)) {
         return;
@@ -17488,7 +17508,7 @@ void Player_Action_57(Player* this, PlayState* play) {
 
     this->stateFlags2 |= PLAYER_STATE2_20;
     func_808475B4(this);
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
     if (!Player_TryActionHandlerList(play, this, sActionHandlerList11, true) &&
         !func_8083B3B4(play, this, sPlayerControlInput) && !func_80850854(play, this)) {
         Player_PlaySwimDiveAnimation(play, this, sPlayerControlInput, this->speedXZ);
@@ -17519,7 +17539,7 @@ void Player_Action_58(Player* this, PlayState* play) {
 
     Player_PlaySwimDiveAnimation(play, this, sPlayerControlInput, this->speedXZ);
     func_808475B4(this);
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
 
     if (!Player_TryActionHandlerList(play, this, sActionHandlerList11, true) &&
         !func_8083B3B4(play, this, sPlayerControlInput)) {
@@ -17542,7 +17562,7 @@ void Player_Action_59(Player* this, PlayState* play) {
 
     this->actor.gravity = 0.0f;
     Player_UpdateUpperBody(this, play);
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
 
     if (Player_ActionHandler_13(this, play)) {
         return;
@@ -17604,7 +17624,7 @@ void Player_Action_59(Player* this, PlayState* play) {
 void Player_Action_DiveFinish(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20;
 
-    func_8082F164(this, BTN_R);
+    Player_TryZoraShieldBarrier(this, BTN_R);
     if (((this->stateFlags1 & PLAYER_STATE1_400) || (this->skelAnime.curFrame <= 1.0f) || !func_80850734(play, this)) &&
         PlayerAnimation_Update(play, &this->skelAnime)) {
         if (!(this->stateFlags1 & PLAYER_STATE1_400) || Player_GetItemTextboxSfx(play, this)) {
@@ -18470,7 +18490,7 @@ void Player_Action_Grabbed(Player* this, PlayState* play) {
     }
 
     if (play->sceneId != SCENE_SEA_BS) {
-        func_8082F164(this, BTN_R);
+        Player_TryZoraShieldBarrier(this, BTN_R);
     }
 
     if (Player_TryBreakingFree(this, 0, 100)) {
