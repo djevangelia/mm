@@ -4734,7 +4734,7 @@ bool Player_CanUpdateItems(Player* this) {
 }
 
 // Whether action is Bremen marching or Kamaro dancing
-bool func_8083213C(Player* this) {
+bool Player_ActionIsBremenOrKamaro(Player* this) {
     return (Player_Action_BremenMarch == this->actionFunc) || (Player_Action_KamaroDance == this->actionFunc);
 }
 
@@ -5472,7 +5472,7 @@ s32 Player_TryActionHandlerList(PlayState* play, Player* this, s8* actionHandler
             }
         }
 
-        if (func_8083213C(this)) {
+        if (Player_ActionIsBremenOrKamaro(this)) {
             return true;
         }
     } else if (this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR) {
@@ -7268,7 +7268,12 @@ void func_808373A4(PlayState* play, Player* this) {
     Player_PlaySfx(this, NA_SE_PL_DEKUNUTS_ATTACK);
 }
 
-s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
+/**
+ * Running off a ledge and jumping with speed. Set jump animation.
+ * Calls setup for Player_Action_NotOnGround with setting state PLAYER_STATE1_18.
+ * @return always true
+ */
+s32 Player_JumpFromLedge(PlayState* play, Player* this, u16 sfxId) {
     PlayerAnimationHeader* anim;
     f32 speed;
     s16 yawDiff = this->yaw - this->actor.shape.rot.y;
@@ -7341,10 +7346,14 @@ s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
     return true;
 }
 
-s32 func_80837730(PlayState* play, Player* this, f32 arg2, s32 scale) {
-    f32 sp3C = fabsf(arg2);
+/**
+ * Spawn water splash
+ * @return true if spawned, else false
+ */
+s32 Player_SpawnWaterSplash(PlayState* play, Player* this, f32 velocity, s32 scale) {
+    f32 speed = fabsf(velocity);
 
-    if (sp3C > 2.0f) {
+    if (speed > 2.0f) {
         WaterBox* waterBox;
         f32 sp34;
         Vec3f pos;
@@ -7355,7 +7364,7 @@ s32 func_80837730(PlayState* play, Player* this, f32 arg2, s32 scale) {
             sp34 = pos.y - this->bodyPartsPos[PLAYER_BODYPART_LEFT_FOOT].y;
             if ((sp34 > -2.0f) && (sp34 < 100.0f)) {
                 EffectSsGSplash_Spawn(play, &pos, NULL, NULL,
-                                      (sp3C <= 10.0f) ? EFFSSGSPLASH_TYPE_0 : EFFSSGSPLASH_TYPE_1, scale);
+                                      (speed <= 10.0f) ? EFFSSGSPLASH_TYPE_0 : EFFSSGSPLASH_TYPE_1, scale);
                 return true;
             }
         }
@@ -7385,8 +7394,8 @@ void func_808378FC(PlayState* play, Player* this) {
         this->stateFlags2 |= PLAYER_STATE2_20;
     }
 
-    if (func_8083784C(this) && func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP)) {
-        func_80837730(play, this, 20.0f, this->actor.velocity.y * 50.0f);
+    if (func_8083784C(this) && Player_JumpFromLedge(play, this, NA_SE_VO_LI_AUTO_JUMP)) {
+        Player_SpawnWaterSplash(play, this, 20.0f, this->actor.velocity.y * 50.0f);
     }
 }
 
@@ -7451,18 +7460,21 @@ void Player_SetupGrabHoldDynapolyAfterPutAway(PlayState* play, Player* this) {
     Player_SetAction(play, this, Player_Action_GrabHoldDynapoly, 0);
 }
 
-void func_80837C20(PlayState* play, Player* this) {
-    s32 sp1C = this->av2.actionVar2;
-    s32 sp18 = this->av1.actionVar1;
+/**
+ * Preserves action variables as they are used for climb info
+ */
+void Player_SetupClimbing(PlayState* play, Player* this) {
+    s32 av2 = this->av2.actionVar2;
+    s32 av1 = this->av1.actionVar1;
 
     Player_SetAction_PreserveMoveFlags(play, this, Player_Action_Climbing, 0);
     this->actor.velocity.y = 0.0f;
 
-    this->av2.actionVar2 = sp1C;
-    this->av1.actionVar1 = sp18;
+    this->av2.actionVar2 = av2;
+    this->av1.actionVar1 = av1;
 }
 
-void func_80837C78(PlayState* play, Player* this) {
+void Player_SetupGetItem(PlayState* play, Player* this) {
     Player_SetAction_PreserveMoveFlags(play, this, Player_Action_GetItem, 0);
     this->stateFlags1 |= (PLAYER_STATE1_400 | PLAYER_STATE1_20000000);
 
@@ -7560,7 +7572,7 @@ s32 Player_GrabLedgeFromAbove(Player* this, PlayState* play) {
                                       climb ? &gPlayerAnim_link_normal_Fclimb_startB
                                                : &gPlayerAnim_link_normal_fall);
                         if (climb) {
-                            Player_SetupWaitForPutAway(play, this, func_80837C20);
+                            Player_SetupWaitForPutAway(play, this, Player_SetupClimbing);
 
                             this->actor.shape.rot.y = this->yaw += 0x8000;
                             this->stateFlags1 |= PLAYER_STATE1_CLIMBING;
@@ -7614,8 +7626,8 @@ void func_8083827C(Player* this, PlayState* play) {
     s32 sp5C;
     WaterBox* waterBox;
     Vec3f sp4C;
-    f32 sp48;
-    f32 sp44;
+    f32 yRaycast;
+    f32 yPlayer;
 
     this->fallDistance = this->fallStartHeight - (s32)this->actor.world.pos.y;
     if (!(this->stateFlags1 & (PLAYER_STATE1_IN_WATER | PLAYER_STATE1_20000000)) &&
@@ -7652,11 +7664,14 @@ void func_8083827C(Player* this, PlayState* play) {
             return;
         }
 
+        // If function comes this far, player has left the ground
         temp_t0 = BINANG_SUB(this->yaw, this->actor.shape.rot.y);
         Player_SetAction(play, this, Player_Action_NotOnGround, 1);
         Player_ResetStates(play, this);
 
         this->floorSfxOffset = this->prevFloorSfxOffset;
+
+        // Running off the ledge. Doesn't check if possible to grab. Jump will be large
         if ((this->transformation != PLAYER_FORM_GORON) &&
             ((this->transformation != PLAYER_FORM_DEKU) || (this->remainingHopsCounter != 0)) &&
             (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND_LEAVE)) {
@@ -7665,31 +7680,32 @@ void func_8083827C(Player* this, PlayState* play) {
                     (sPlayerYDistToFloor > 20.0f) && (this->meleeWeaponState == PLAYER_MELEE_WEAPON_STATE_0)) {
                     if ((ABS_ALT(temp_t0) < 0x2000) && (this->speedXZ > 3.0f)) {
                         if (!(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR)) {
+                            // Check if able to jumpdive
                             if (((this->transformation == PLAYER_FORM_ZORA) &&
                                  CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A)) ||
                                 ((sPrevFloorProperty == FLOOR_PROPERTY_11) &&
                                  (this->transformation != PLAYER_FORM_GORON) &&
                                  (this->transformation != PLAYER_FORM_DEKU))) {
 
-                                sp48 = Player_RelativeRaycastDown(play, this, &D_8085D154, &sp4C, &sp60, &sp5C);
-                                sp44 = this->actor.world.pos.y;
+                                yRaycast = Player_RelativeRaycastDown(play, this, &D_8085D154, &sp4C, &sp60, &sp5C);
+                                yPlayer = this->actor.world.pos.y;
 
-                                if (WaterBox_GetSurface1(play, &play->colCtx, sp4C.x, sp4C.z, &sp44, &waterBox) &&
-                                    ((sp44 - sp48) > 50.0f)) {
+                                if (WaterBox_GetSurface1(play, &play->colCtx, sp4C.x, sp4C.z, &yPlayer, &waterBox) &&
+                                    ((yPlayer - yRaycast) > 50.0f)) {
                                     func_80834DB8(this, &gPlayerAnim_link_normal_run_jump_water_fall, 6.0f, play);
                                     Player_SetAction(play, this, Player_Action_Jumpdive, 0);
                                     return;
                                 }
                             }
                         }
-                        func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
+                        Player_JumpFromLedge(play, this, NA_SE_VO_LI_AUTO_JUMP);
                         return;
                     }
                 }
             }
         }
 
-        // Checking if the ledge is tall enough for Player to hang from
+        // Not running. Check if player is forced to fall/jump or can grab the ledge.
         if ((sPrevFloorProperty == FLOOR_PROPERTY_9) || (sPlayerYDistToFloor <= this->ageProperties->unk_34) ||
             !Player_GrabLedgeFromAbove(this, play)) {
             Player_Anim_PlayLoop(play, this, &gPlayerAnim_link_normal_landing_wait);
@@ -7759,7 +7775,10 @@ s32 Player_StartCsAction(PlayState* play, Player* this) {
     return false;
 }
 
-void func_80838830(Player* this, s16 objectId) {
+/**
+ * Async DMA request for the giObject in question
+ */
+void Player_GiObjectDMARequest(Player* this, s16 objectId) {
     s32 pad[2];
 
     if (objectId != OBJECT_UNSET_0) {
@@ -8463,7 +8482,7 @@ void Player_SetupIdlePlayOnce(Player* this, PlayState* play) {
 
 void func_80839ED0(Player* this, PlayState* play) {
     if (!(this->stateFlags3 & PLAYER_STATE3_FLYING_WITH_HOOKSHOT) && (Player_Action_ThrowDekuNut != this->actionFunc) &&
-        !func_8083213C(this)) {
+        !Player_ActionIsBremenOrKamaro(this)) {
         func_80836D8C(this);
         if (!(this->stateFlags1 & PLAYER_STATE1_TALKING)) {
             if (func_801242B4(this)) {
@@ -8943,7 +8962,7 @@ void func_8083B32C(PlayState* play, Player* this, f32 arg2) {
     this->stateFlags1 &= ~PLAYER_STATE1_IN_WATER;
     func_8082DC64(play, this);
 
-    if (func_80837730(play, this, arg2, 500)) {
+    if (Player_SpawnWaterSplash(play, this, arg2, 500)) {
         Player_PlaySfx(this, NA_SE_EV_JUMP_OUT_WATER);
     }
     func_80123140(play, this);
@@ -8986,7 +9005,7 @@ s32 func_8083B3B4(PlayState* play, Player* this, Input* input) {
 
         this->stateFlags2 &= ~PLAYER_STATE2_400;
         func_8082DC64(play, this);
-        temp_v0_3 = func_80837730(play, this, this->actor.velocity.y, 0x1F4);
+        temp_v0_3 = Player_SpawnWaterSplash(play, this, this->actor.velocity.y, 0x1F4);
         if (this->stateFlags3 & PLAYER_STATE3_8000) {
             sp2A = this->unk_B86[1];
             sp24 = this->unk_B48 * 1.5f;
@@ -9057,7 +9076,7 @@ void func_8083B850(PlayState* play, Player* this) {
 }
 
 void func_8083B8D0(PlayState* play, Player* this) {
-    if (func_80837730(play, this, this->actor.velocity.y, 500)) {
+    if (Player_SpawnWaterSplash(play, this, this->actor.velocity.y, 500)) {
         Player_PlaySfx(this, NA_SE_EV_DIVE_INTO_WATER);
         if (this->fallDistance > 800) {
             Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_CLIMB_END);
@@ -9134,7 +9153,7 @@ void func_8083BB4C(PlayState* play, Player* this) {
                 func_8083B8D0(play, this);
             } else if (this->transformation == PLAYER_FORM_DEKU) {
                 if (this->remainingHopsCounter != 0) {
-                    func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
+                    Player_JumpFromLedge(play, this, NA_SE_VO_LI_AUTO_JUMP);
                 } else {
                     if ((play->sceneId == SCENE_20SICHITAI) && (this->unk_3CF == 0)) {
                         if (CHECK_EVENTINF(EVENTINF_50)) {
@@ -9267,7 +9286,7 @@ void func_8083BF54(PlayState* play, Player* this) {
                 if ((this->speedXZ > 4.0f) && !func_801242B4(this) &&
                     ((this->actor.world.pos.y + this->actor.depthInWater) <
                      this->bodyPartsPos[PLAYER_BODYPART_WAIST].y)) {
-                    func_80837730(play, this, 20.0f,
+                    Player_SpawnWaterSplash(play, this, 20.0f,
                                   (fabsf(this->speedXZ) * 50.0f) + (this->actor.depthInWater * 5.0f));
                 } else if (this->stateFlags3 & PLAYER_STATE3_8000) {
                     s32 i;
@@ -9279,7 +9298,7 @@ void func_8083BF54(PlayState* play, Player* this) {
                         temp_fv1_5 = bodyPartsPos->y - var_fa0_3;
 
                         if (temp_fv1_5 > 0.0f) {
-                            func_80837730(play, this, 20.0f, fabsf(this->speedXZ) * 20.0f + (temp_fv1_5 * 10.0f));
+                            Player_SpawnWaterSplash(play, this, 20.0f, fabsf(this->speedXZ) * 20.0f + (temp_fv1_5 * 10.0f));
                         }
                     }
                 }
@@ -9617,12 +9636,12 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                     if ((Item_CheckObtainability(giEntry->itemId) == ITEM_NONE) ||
                         ((s16)giEntry->objectId == OBJECT_GI_BOMB_2)) {
                         Player_DetachHeldActor(play, this);
-                        func_80838830(this, giEntry->objectId);
+                        Player_GiObjectDMARequest(this, giEntry->objectId);
 
                         if (!(this->stateFlags2 & PLAYER_STATE2_400) ||
                             (this->currentBoots == PLAYER_BOOTS_ZORA_UNDERWATER)) {
                             Player_StopCutscene(this);
-                            Player_SetupWaitForPutAwayWithCs(play, this, func_80837C78,
+                            Player_SetupWaitForPutAwayWithCs(play, this, Player_SetupGetItem,
                                                              play->playerCsIds[PLAYER_CS_ID_ITEM_GET]);
                             Player_Anim_PlayOnceAdjusted(play, this,
                                                          (this->transformation == PLAYER_FORM_DEKU)
@@ -9657,10 +9676,10 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                                 giEntry = &sGetItemTable[-this->getItemId - 1];
                             }
 
-                            Player_SetupWaitForPutAway(play, this, func_80837C78);
+                            Player_SetupWaitForPutAway(play, this, Player_SetupGetItem);
                             this->stateFlags1 |=
                                 (PLAYER_STATE1_400 | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_20000000);
-                            func_80838830(this, giEntry->objectId);
+                            Player_GiObjectDMARequest(this, giEntry->objectId);
 
                             this->actor.world.pos.x =
                                 interactRangeActor->world.pos.x -
@@ -9832,7 +9851,7 @@ s32 func_8083D860(Player* this, PlayState* play) {
                 f32 distToInteractWall = this->distToInteractWall;
                 PlayerAnimationHeader* anim;
 
-                Player_SetupWaitForPutAway(play, this, func_80837C20);
+                Player_SetupWaitForPutAway(play, this, Player_SetupClimbing);
 
                 this->stateFlags1 |= PLAYER_STATE1_CLIMBING;
                 this->stateFlags1 &= ~PLAYER_STATE1_IN_WATER;
@@ -15515,7 +15534,7 @@ void Player_Action_DeathGround(Player* this, PlayState* play) {
 }
 
 s32 func_8084C124(PlayState* play, Player* this) {
-    if (func_80837730(play, this, 3.0f, 500)) {
+    if (Player_SpawnWaterSplash(play, this, 3.0f, 500)) {
         Player_PlaySfx(this, NA_SE_EV_DIVE_INTO_WATER);
         return true;
     }
@@ -17231,7 +17250,7 @@ s32 func_80850734(PlayState* play, Player* this) {
 s32 func_80850854(PlayState* play, Player* this) {
     if ((this->transformation == PLAYER_FORM_DEKU) && (this->remainingHopsCounter != 0) &&
         (gSaveContext.save.saveInfo.playerData.health != 0) && (sControlStickMagnitude != 0.0f)) {
-        func_808373F8(play, this, 0);
+        Player_JumpFromLedge(play, this, 0);
         return true;
     }
     return false;
@@ -18428,7 +18447,7 @@ void Player_Action_ExchangeItem(Player* this, PlayState* play) {
         } else if (PlayerAnimation_OnFrame(&this->skelAnime, 2.0f)) {
             GetItemEntry* giEntry = &sGetItemTable[D_8085D1A4[this->itemAction] - 1];
 
-            func_80838830(this, giEntry->objectId);
+            Player_GiObjectDMARequest(this, giEntry->objectId);
         }
         Player_PlayAnimSfx(this, D_8085D840);
     }
@@ -20865,7 +20884,7 @@ void Player_CsAction_2(PlayState* play, Player* this, CsCmdActorCue* cue) {
 
 void Player_CsAction_3(PlayState* play, Player* this, CsCmdActorCue* cue) {
     if (this->actor.id == ACTOR_EN_TEST3) {
-        func_80838830(this, OBJECT_GI_MSSA);
+        Player_GiObjectDMARequest(this, OBJECT_GI_MSSA);
         this->stateFlags1 |= PLAYER_STATE1_400;
     }
 
@@ -21236,7 +21255,7 @@ void Player_CsAction_39(PlayState* play, Player* this, CsCmdActorCue* cue) {
 }
 
 void Player_CsAction_40(PlayState* play, Player* this, CsCmdActorCue* cue) {
-    func_80838830(this, OBJECT_GI_RESERVE_C_01);
+    Player_GiObjectDMARequest(this, OBJECT_GI_RESERVE_C_01);
     Player_CsAnim_PlayOnceSlowMorphAdjustedReset(play, this, &gPlayerAnim_link_normal_give_other);
     this->stateFlags2 &= ~PLAYER_STATE2_1000000;
 }
