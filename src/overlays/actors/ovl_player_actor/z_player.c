@@ -66,7 +66,7 @@ s32 func_8085B930(PlayState* play, PlayerAnimationHeader* talkAnim, AnimationMod
 void Player_UpdateCommon(Player* this, PlayState* play, Input* input);
 s32 Player_StartFishing(PlayState* play);
 void func_8085B170(PlayState* play, Player* this);
-s32 func_8083A658(PlayState* play, Player* this);
+s32 Player_SetupThrowDekuNut(PlayState* play, Player* this);
 void Player_InitItemAction(PlayState* play, Player* this, PlayerItemAction itemAction);
 
 void Player_UseItem(PlayState* play, Player* this, ItemId item);
@@ -133,10 +133,10 @@ void Player_Action_RunWalk(Player* this, PlayState* play);
 void Player_Action_RunWalkParallel(Player* this, PlayState* play);
 void Player_Action_15(Player* this, PlayState* play);
 void Player_Action_16(Player* this, PlayState* play);
-void Player_Action_17(Player* this, PlayState* play);
+void Player_Action_PlantMagicBean(Player* this, PlayState* play);
 void Player_Action_ShieldCrouch(Player* this, PlayState* play);
 void Player_Action_ShieldBlock(Player* this, PlayState* play);
-void Player_Action_DamageReaction(Player* this, PlayState* play);
+void Player_Action_DamageAnimation(Player* this, PlayState* play);
 void Player_Action_KnockbackFly(Player* this, PlayState* play);
 void Player_Action_KnockbackLand(Player* this, PlayState* play);
 void Player_Action_KnockbackRise(Player* this, PlayState* play);
@@ -180,7 +180,7 @@ void Player_Action_DiveFinish(Player* this, PlayState* play);
 void Player_Action_DamageWater(Player* this, PlayState* play);
 void Player_Action_DeathWater(Player* this, PlayState* play);
 void Player_Action_63(Player* this, PlayState* play);
-void Player_Action_64(Player* this, PlayState* play);
+void Player_Action_ThrowDekuNut(Player* this, PlayState* play);
 void Player_Action_GetItem(Player* this, PlayState* play);
 void Player_Action_TimeTravelEnd(Player* this, PlayState* play);
 void Player_Action_DrinkBottle(Player* this, PlayState* play);
@@ -4629,7 +4629,7 @@ void Player_UseItem(PlayState* play, Player* this, ItemId item) {
                    ((this->transformation != PLAYER_FORM_DEKU) || (this->heldItemButton != 0))) {
             // Handle Deku Nuts
             if (AMMO(ITEM_DEKU_NUT) != 0) {
-                func_8083A658(play, this);
+                Player_SetupThrowDekuNut(play, this);
             } else {
                 Audio_PlaySfx(NA_SE_SY_ERROR);
             }
@@ -4749,7 +4749,7 @@ bool Player_UpdateUpperBody(Player* this, PlayState* play) {
 
     if (Player_CanUpdateItems(this)) {
         Player_UpdateItems(this, play);
-        if (Player_Action_64 == this->actionFunc) {
+        if (Player_Action_ThrowDekuNut == this->actionFunc) {
             return true;
         }
     }
@@ -5439,7 +5439,7 @@ s32 Player_TryActionHandlerList(PlayState* play, Player* this, s8* actionHandler
         !func_8082DA90(play)) {
         if (updateUpperBody) {
             sUpperBodyIsBusy = Player_UpdateUpperBody(this, play);
-            if (Player_Action_64 == this->actionFunc) {
+            if (Player_Action_ThrowDekuNut == this->actionFunc) {
                 return true;
             }
         }
@@ -5929,7 +5929,7 @@ void Player_HandleDamageHitResponse(PlayState* play, Player* this, s32 hitRespon
         } else {
             PlayerAnimationHeader** animPtr = D_8085D0D4;
 
-            Player_SetAction(play, this, Player_Action_DamageReaction, 0);
+            Player_SetAction(play, this, Player_Action_DamageAnimation, 0);
             Player_ResetForwardFootWeight(this);
 
             if (this->actor.colChkInfo.damage < 5) {
@@ -7029,6 +7029,7 @@ void Player_SetupIdlePlayGivenAnim(Player* this, PlayerAnimationHeader* anim, Pl
     Player_Anim_PlayOnceWaterAdjustment(play, this, anim);
 }
 
+// setup curl? goron roll?
 void func_80836AD8(PlayState* play, Player* this) {
     Player_SetAction(play, this, Player_Action_96, 0);
     this->unk_B28 = 0;
@@ -7180,6 +7181,7 @@ s32 Player_SetFallDamage(PlayState* play, Player* this) {
     return 0;
 }
 
+// Broken out of OoT Player_Action_NotOnGround
 s32 func_808370D4(PlayState* play, Player* this) {
     if ((this->fallDistance < 800) &&
         (this->controlStickDirections[this->controlStickDataIndex] == PLAYER_STICK_DIR_FORWARD) &&
@@ -7976,7 +7978,7 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
                         this->stateFlags1 |= (PLAYER_STATE1_20000000 | PLAYER_STATE1_TALKING);
                         if (this->exchangeItemAction == PLAYER_IA_MAGIC_BEANS) {
                             Inventory_ChangeAmmo(ITEM_MAGIC_BEANS, -1);
-                            Player_SetAction_PreserveItemAction(play, this, Player_Action_17, 0);
+                            Player_SetAction_PreserveItemAction(play, this, Player_Action_PlantMagicBean, 0);
                             this->yaw = talkActor->yawTowardsPlayer + 0x8000;
                             this->actor.shape.rot.y = this->yaw;
                             if (talkActor->xzDistToPlayer < 40.0f) {
@@ -7987,7 +7989,7 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
                                 Player_Anim_PlayOnceMorph(play, this, D_8085BE84[31][this->modelAnimType]);
                             }
                             this->stateFlags1 |= PLAYER_STATE1_20000000;
-                            this->av2.actionVar2 = 80;
+                            this->av2.plantBeanTimer = 80;
                             this->av1.actionVar1 = -1;
                             this->focusActor = this->talkActor;
                         } else {
@@ -8292,7 +8294,7 @@ s32 func_80839800(Player* this, PlayState* play) {
     return false;
 }
 
-void func_80839860(Player* this, PlayState* play, s32 controlStickDirection) {
+void Player_StartSidehopBackflip(Player* this, PlayState* play, s32 controlStickDirection) {
     s32 pad;
     f32 speed;
 
@@ -8393,7 +8395,7 @@ s32 Player_ActionHandler_10(Player* this, PlayState* play) {
                 return true;
             }
         } else {
-            func_80839860(this, play, controlStickDirection);
+            Player_StartSidehopBackflip(this, play, controlStickDirection);
             return true;
         }
     }
@@ -8448,7 +8450,7 @@ void Player_SetupIdlePlayOnce(Player* this, PlayState* play) {
 }
 
 void func_80839ED0(Player* this, PlayState* play) {
-    if (!(this->stateFlags3 & PLAYER_STATE3_FLYING_WITH_HOOKSHOT) && (Player_Action_64 != this->actionFunc) &&
+    if (!(this->stateFlags3 & PLAYER_STATE3_FLYING_WITH_HOOKSHOT) && (Player_Action_ThrowDekuNut != this->actionFunc) &&
         !func_8083213C(this)) {
         func_80836D8C(this);
         if (!(this->stateFlags1 & PLAYER_STATE1_TALKING)) {
@@ -8618,9 +8620,9 @@ s32 Player_ActionHandler_8(Player* this, PlayState* play) {
     return false;
 }
 
-s32 func_8083A658(PlayState* play, Player* this) {
+s32 Player_SetupThrowDekuNut(PlayState* play, Player* this) {
     if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
-        Player_SetAction(play, this, Player_Action_64, 0);
+        Player_SetAction(play, this, Player_Action_ThrowDekuNut, 0);
         Player_Anim_PlayOnce(play, this, &gPlayerAnim_link_normal_light_bom);
         this->unk_AA5 = PLAYER_UNKAA5_0;
         return true;
@@ -10587,13 +10589,19 @@ s32 func_8083FBC4(PlayState* play, Player* this) {
     return false;
 }
 
-s32 func_8083FCF0(PlayState* play, Player* this, f32 arg2, f32 arg3, f32 arg4) {
-    if (arg4 < this->skelAnime.curFrame) {
+/**
+ * Function to set meleeWeaponState to -1 for early frames of attack animation
+ * followed by 1. When -1 only the blure effect is drawn. When 1 both the blure effect
+ * and the colliders are active.
+ */
+s32 Player_ActivateMeleeByFrames(PlayState* play, Player* this, f32 blureFrame, f32 colliderFrame, f32 finalFrame) {
+    if (finalFrame < this->skelAnime.curFrame) {
+        // Outside of blureFrame and finalFrame, we do not want any blure effect or collider
         Player_InactivateMeleeWeapon(this);
-    } else if (arg2 <= this->skelAnime.curFrame) {
+    } else if (blureFrame <= this->skelAnime.curFrame) {
         this->stateFlags3 |= PLAYER_STATE3_2000000;
         Player_ActivateMeleeWeapon(play, this,
-                      (arg3 <= this->skelAnime.curFrame) ? PLAYER_MELEE_WEAPON_STATE_1
+                      (colliderFrame <= this->skelAnime.curFrame) ? PLAYER_MELEE_WEAPON_STATE_1
                                                          : PLAYER_MELEE_WEAPON_STATE_MINUS_1);
         return true;
     }
@@ -15159,7 +15167,10 @@ void Player_Action_16(Player* this, PlayState* play) {
     }
 }
 
-void Player_Action_17(Player* this, PlayState* play) {
+/**
+ * Watch as Magic Bean gets planted, then setup idle.
+ */
+void Player_Action_PlantMagicBean(Player* this, PlayState* play) {
     if (this->skelAnime.animation == &gPlayerAnim_link_normal_backspace) {
         if (PlayerAnimation_Update(play, &this->skelAnime)) {
             Player_Anim_ResetMove(this);
@@ -15169,16 +15180,16 @@ void Player_Action_17(Player* this, PlayState* play) {
         Player_Anim_PlayLoopOnceFinished(play, this, D_8085BE84[PLAYER_ANIMGROUP_check_wait][this->modelAnimType]);
     }
 
-    if (DECR(this->av2.actionVar2) == 0) {
+    if (DECR(this->av2.plantBeanTimer) == 0) {
         if (!Player_ActionHandler_13(this, play)) {
             Player_SetupIdlePlayGivenAnim(this, D_8085BE84[PLAYER_ANIMGROUP_check_end][this->modelAnimType], play);
         }
+
         this->actor.flags &= ~ACTOR_FLAG_TALK;
         Camera_SetFinishedFlag(Play_GetCamera(play, CAM_ID_MAIN));
     }
 }
 
-// Player_Action_Shielding
 void Player_Action_ShieldCrouch(Player* this, PlayState* play) {
     Player_DecelerateToZero(this);
 
@@ -15335,7 +15346,7 @@ void Player_Action_ShieldBlock(Player* this, PlayState* play) {
  * This action is setup early in the gameframe and thus run on the same frame
  * (replacing the previous player action).
  */
-void Player_Action_DamageReaction(Player* this, PlayState* play) {
+void Player_Action_DamageAnimation(Player* this, PlayState* play) {
     PlayerActionInterruptResult interruptResult;
 
     Player_DecelerateToZero(this);
@@ -15682,7 +15693,9 @@ void Player_Action_Jumpdive(Player* this, PlayState* play) {
     }
 
     Math_StepToF(&this->speedXZ, 0.0f, 0.05f);
+
     if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
+        // Take damage if smack into the ground from high enough height
         if (this->fallDistance >= 400) {
             this->actor.colChkInfo.damage = 0x10;
             Player_HandleDamageHitResponse(play, this, 1, 4.0f, 5.0f, this->actor.shape.rot.y, 20);
@@ -15735,7 +15748,7 @@ void Player_Action_Jumpslash(Player* this, PlayState* play) {
     PlayerAnimation_Update(play, &this->skelAnime);
 
     if (!Player_CheckMeleeInterrupt(play, this)) {
-        func_8083FCF0(play, this, 6.0f, attackInfoEntry->unk_C, attackInfoEntry->unk_D);
+        Player_ActivateMeleeByFrames(play, this, 6.0f, attackInfoEntry->unk_C, attackInfoEntry->unk_D);
         if (!(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
             Player_GetMovementSpeedAndYaw(this, &speedTarget, &yawTarget, SPEED_MODE_LINEAR, play);
             func_8083CBC4(this, speedTarget, this->yaw, 1.0f, 0.05f, 0.1f, 200);
@@ -16700,9 +16713,9 @@ void Player_Action_ClimbUp(Player* this, PlayState* play) {
 void Player_Action_Climbing(Player* this, PlayState* play) {
     s32 yStick = sPlayerControlInput->rel.stick_y;
     s32 xStick = sPlayerControlInput->rel.stick_x;
-    f32 var_fv0;
-    f32 var_fv1;
-    Vec3f sp7C;
+    f32 speed;
+    f32 animSpeed;
+    Vec3f wallMoveDiff;
     s32 sp78;
     Vec3f sp6C;
     Vec3f sp60;
@@ -16715,34 +16728,34 @@ void Player_Action_Climbing(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_40;
 
     if ((this->av1.actionVar1 != 0) && (ABS_ALT(yStick) < ABS_ALT(xStick))) {
-        var_fv0 = ABS_ALT(xStick) * 0.0325f;
+        speed = ABS_ALT(xStick) * 0.0325f;
         yStick = 0;
     } else {
-        var_fv0 = ABS_ALT(yStick) * 0.05f;
+        speed = ABS_ALT(yStick) * 0.05f;
         xStick = 0;
     }
 
-    if (var_fv0 < 1.0f) {
-        var_fv0 = 1.0f;
-    } else if (var_fv0 > 3.35f) {
-        var_fv0 = 3.35f;
+    if (speed < 1.0f) {
+        speed = 1.0f;
+    } else if (speed > 3.35f) {
+        speed = 3.35f;
     }
 
     if (this->skelAnime.playSpeed >= 0.0f) {
-        var_fv1 = 1.0f;
+        animSpeed = 1.0f;
     } else {
-        var_fv1 = -1.0f;
+        animSpeed = -1.0f;
     }
 
-    this->skelAnime.playSpeed = var_fv1 * var_fv0;
+    this->skelAnime.playSpeed = animSpeed * speed;
 
     if (this->av2.actionVar2 >= 0) {
         if ((this->actor.wallPoly != NULL) && (this->actor.wallBgId != BGCHECK_SCENE)) {
             dyna = DynaPoly_GetActor(&play->colCtx, this->actor.wallBgId);
 
             if (dyna != NULL) {
-                Math_Vec3f_Diff(&dyna->actor.world.pos, &dyna->actor.prevPos, &sp7C);
-                Math_Vec3f_Sum(&this->actor.world.pos, &sp7C, &this->actor.world.pos);
+                Math_Vec3f_Diff(&dyna->actor.world.pos, &dyna->actor.prevPos, &wallMoveDiff);
+                Math_Vec3f_Sum(&this->actor.world.pos, &wallMoveDiff, &this->actor.world.pos);
             }
         }
 
@@ -17899,7 +17912,7 @@ void Player_Action_63(Player* this, PlayState* play) {
     }
 }
 
-void Player_Action_64(Player* this, PlayState* play) {
+void Player_Action_ThrowDekuNut(Player* this, PlayState* play) {
     Player_DecelerateToZero(this);
 
     if (PlayerAnimation_Update(play, &this->skelAnime)) {
@@ -18726,7 +18739,7 @@ void Player_Action_MeleeAttack(Player* this, PlayState* play) {
     }
 
     if (this->speedXZ >= 0.0f) {
-        func_8083FCF0(play, this, (this->transformation == PLAYER_FORM_GORON) ? 5.0f : 0.0f, attackInfoEntry->unk_C,
+        Player_ActivateMeleeByFrames(play, this, (this->transformation == PLAYER_FORM_GORON) ? 5.0f : 0.0f, attackInfoEntry->unk_C,
                       attackInfoEntry->unk_D);
     }
 
@@ -21045,7 +21058,7 @@ void Player_CsAction_20(PlayState* play, Player* this, CsCmdActorCue* cue) {
 
 void Player_CsAction_21(PlayState* play, Player* this, CsCmdActorCue* cue) {
     if (PlayerAnimation_Update(play, &this->skelAnime)) {
-        func_8083FCF0(play, this, 0.0f, 99.0f, this->skelAnime.endFrame - 8.0f);
+        Player_ActivateMeleeByFrames(play, this, 0.0f, 99.0f, this->skelAnime.endFrame - 8.0f);
     }
     if (this->heldItemAction != PLAYER_IA_SWORD_GILDED) {
         Player_PutSwordInHand(play, this, true);

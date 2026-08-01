@@ -1307,6 +1307,7 @@ typedef struct Player {
         s16 waitForAnimDone; // Player_Action_IdleHostile: Used to ensure previously started animation finishes before starting idle animation.
         s16 firstPersonAimDelay; // Player_Action_InFirstPerson: Delay from entering first person mode and able to aim with ranged weapon
         s16 dismountDown; // Player_Action_DismountLadder: True if player is dismounting the ladder downwards
+        s16 plantBeanTimer; // Player_Action_PlantMagicBean: Timer for planting bean sequence (80 frames)
     } av2; // "Action Variable 2": context dependent variable that has different meanings depending on what action is currently running
     /* 0xAEC */ f32 unk_AEC;
     /* 0xAF0 */ union {
