@@ -1355,8 +1355,8 @@ typedef struct Player {
     /* 0xB72 */ u16 floorSfxOffset;
     /* 0xB74 */ u8 unk_B74;
     /* 0xB75 */ u8 knockbackType;
-    /* 0xB76 */ s16 unk_B76;
-    /* 0xB78 */ f32 unk_B78;
+    /* 0xB76 */ s16 knockbackRot;
+    /* 0xB78 */ f32 knockbackSpeed;
     /* 0xB7C */ f32 unk_B7C;
     /* 0xB80 */ f32 pushedSpeed; // Pushing player, examples include water currents, floor conveyors, climbing sloped surfaces
     /* 0xB84 */ s16 pushedYaw; // Yaw of direction in which player is being pushed

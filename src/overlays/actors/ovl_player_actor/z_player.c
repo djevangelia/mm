@@ -4116,7 +4116,7 @@ void Player_FinishItemChange(PlayState* play, Player* this) {
     }
 }
 
-void func_808309CC(PlayState* play, Player* this) {
+void Player_SetUpperIA(PlayState* play, Player* this) {
     if (Player_UpperAction_ChangeHeldItem == this->upperActionFunc) {
         Player_FinishItemChange(play, this);
     }
@@ -4460,7 +4460,7 @@ s32 Player_SetAction(PlayState* play, Player* this, PlayerActionFunc actionFunc,
     }
 
     if (!(arg3 & 1) && !(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR)) {
-        func_808309CC(play, this);
+        Player_SetUpperIA(play, this);
         PlayerAnimation_PlayLoop(play, &this->skelAnimeUpper, Player_GetIdleAnim(this));
         this->stateFlags1 &= ~PLAYER_STATE1_400000;
     }
@@ -6179,7 +6179,7 @@ s32 func_80834600(Player* this, PlayState* play) {
             }
 
             this->actor.colChkInfo.damage += this->unk_B74;
-            Player_HandleDamageHitResponse(play, this, knockbackResponse[this->knockbackType - 1], this->unk_B78, this->unk_B7C, this->unk_B76, 20);
+            Player_HandleDamageHitResponse(play, this, knockbackResponse[this->knockbackType - 1], this->knockbackSpeed, this->unk_B7C, this->knockbackRot, 20);
         }
     } else if ((this->shieldQuad.base.acFlags & AC_BOUNCED) || (this->shieldCylinder.base.acFlags & AC_BOUNCED) ||
                ((this->invincibilityTimer < 0) && (this->cylinder.base.acFlags & AC_HIT) &&
@@ -10981,7 +10981,7 @@ void Player_ThrowCarriedActor(PlayState* play, Player* this, f32 speed, f32 yVel
         heldActor->world.rot.y = this->actor.shape.rot.y;
         heldActor->speed = speed;
         heldActor->velocity.y = yVelocity;
-        func_808309CC(play, this);
+        Player_SetUpperIA(play, this);
         Player_PlaySfx(this, NA_SE_PL_THROW);
         Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_SWORD_N);
     }
@@ -11197,7 +11197,7 @@ void Player_PutSwordInHand(PlayState* play, Player* this, s32 playSfx) {
     this->nextModelGroup = Player_ActionToModelGroup(this, swordItemAction);
 
     Player_InitItemAction(play, this, swordItemAction);
-    func_808309CC(play, this);
+    Player_SetUpperIA(play, this);
 
     if (playSfx) {
         Player_PlaySfx(this, NA_SE_IT_SWORD_PICKOUT);
@@ -11296,7 +11296,7 @@ void Player_InitCommon(Player* this, PlayState* play, FlexSkeletonHeader* skelHe
     if ((PLAYER_GET_START_MODE(&this->actor) != PLAYER_START_MODE_TELESCOPE) &&
         ((gSaveContext.respawnFlag != 2) || (gSaveContext.respawn[RESPAWN_MODE_RETURN].playerParams !=
                                              PLAYER_PARAMS(0xFF, PLAYER_START_MODE_TELESCOPE)))) {
-        func_808309CC(play, this);
+        Player_SetUpperIA(play, this);
         SkelAnime_InitPlayer(play, &this->skelAnime, skelHeader, D_8085BE84[PLAYER_ANIMGROUP_wait][this->modelAnimType],
                              1 | 8, this->jointTableBuffer, this->morphTableBuffer, PLAYER_LIMB_MAX);
         this->skelAnime.baseTransl = sPlayerSkeletonBaseTransl;
@@ -14319,7 +14319,7 @@ s32 Player_UpperAction_CarryActor(Player* this, PlayState* play) {
     Actor* heldActor = this->heldActor;
 
     if (heldActor == NULL) {
-        func_808309CC(play, this);
+        Player_SetUpperIA(play, this);
     }
 
     if (Player_StartStandShield(play, this)) {
@@ -15175,6 +15175,8 @@ void Player_Action_RunWalkParallel(Player* this, PlayState* play) {
     }
 }
 
+// OoT Player_Action_808423EC
+// Never set in OoT
 void Player_Action_15(Player* this, PlayState* play) {
     s32 animFinished = PlayerAnimation_Update(play, &this->skelAnime);
     f32 speedTarget;
@@ -15202,6 +15204,8 @@ void Player_Action_15(Player* this, PlayState* play) {
     }
 }
 
+// OoT Player_Action_8084251C
+// Never set in OoT
 void Player_Action_16(Player* this, PlayState* play) {
     s32 animFinished = PlayerAnimation_Update(play, &this->skelAnime);
     f32 speedTarget;
@@ -15368,27 +15372,29 @@ void Player_Action_ShieldCrouch(Player* this, PlayState* play) {
     this->unk_AA6_rotFlags |= UNKAA6_ROT_FOCUS_X | UNKAA6_ROT_UPPER_X | UNKAA6_ROT_UPPER_Y;
 }
 
+/**
+ * Used for both shielding crouched without targeting, and with Z-target/in parallel.
+ * After blocking with a shield, let the animation try to be interrupted after a few frames.
+ */
 void Player_Action_ShieldBlock(Player* this, PlayState* play) {
+    PlayerActionInterruptResult interruptResult;
+    PlayerAnimationHeader* anim;
+    f32 endFrame;
     Player_DecelerateToZero(this);
 
-    if (this->av1.crouchShielding == false) {
+    if (!this->av1.crouchShielding) {
         sUpperBodyIsBusy = Player_UpdateUpperBody(this, play);
+
         if ((Player_UpperAction_StandShield == this->upperActionFunc) ||
             (Player_TryActionInterrupt(play, this, &this->skelAnimeUpper, 4.0f) >= PLAYER_INTERRUPT_MOVE)) {
             Player_SetAction(play, this, Player_Action_IdleHostile, 1);
         }
     } else {
-        PlayerActionInterruptResult interruptResult;
-
         this->stateFlags1 |= PLAYER_STATE1_400000;
-
         interruptResult = Player_TryActionInterrupt(play, this, &this->skelAnime, 4.0f);
 
         if ((interruptResult != PLAYER_INTERRUPT_NEW_ACTION) &&
             ((interruptResult >= PLAYER_INTERRUPT_MOVE) || PlayerAnimation_Update(play, &this->skelAnime))) {
-            PlayerAnimationHeader* anim;
-            f32 endFrame;
-
             Player_SetAction(play, this, Player_Action_ShieldCrouch, 1);
             Player_SetModelsForHoldingShield(this);
             anim = D_8085BE84[PLAYER_ANIMGROUP_defense][this->modelAnimType];
@@ -15424,18 +15430,17 @@ void Player_Action_DamageAnimation(Player* this, PlayState* play) {
  */
 void Player_Action_KnockbackFly(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20 | PLAYER_STATE2_40;
+
     func_808345A8(this);
 
-    if (!(this->stateFlags1 & PLAYER_STATE1_20000000) && (this->av2.actionVar2 == 0) && (this->knockbackType != 0)) {
-        s16 temp_v0 = this->unk_B76;
-        s16 temp_v1 = this->actor.shape.rot.y - temp_v0;
+    if (!(this->stateFlags1 & PLAYER_STATE1_20000000) && (this->av2.actionVar2 == 0) && (this->knockbackType != PLAYER_KNOCKBACK_NONE)) {
+        s16 temp = this->actor.shape.rot.y - this->knockbackRot;
 
-        this->actor.shape.rot.y = temp_v0;
-        this->yaw = temp_v0;
-        this->speedXZ = this->unk_B78;
+        this->yaw = this->actor.shape.rot.y = this->knockbackRot;
+        this->speedXZ = this->knockbackSpeed;
 
-        if (ABS_ALT(temp_v1) > 0x4000) {
-            this->actor.shape.rot.y = temp_v0 + 0x8000;
+        if (ABS_ALT(temp) > 0x4000) {
+            this->actor.shape.rot.y = this->knockbackRot + 0x8000;
         }
 
         if (this->actor.velocity.y < 0.0f) {
@@ -15502,11 +15507,12 @@ AnimSfxEntry D_8085D604[] = {
 
 void Player_Action_KnockbackRise(Player* this, PlayState* play) {
     this->stateFlags2 |= PLAYER_STATE2_20;
-
     func_808345A8(this);
+
     if (this->stateFlags1 & PLAYER_STATE1_20000000) {
         PlayerAnimation_Update(play, &this->skelAnime);
     } else {
+        // Player can try moving out of the rise animation to exit action quicker
         PlayerActionInterruptResult interruptResult = Player_TryActionInterrupt(play, this, &this->skelAnime, 16.0f);
 
         if (interruptResult != PLAYER_INTERRUPT_NEW_ACTION) {
@@ -16369,7 +16375,7 @@ void Player_Action_39(Player* this, PlayState* play) {
         heldActor->world.rot.y = this->actor.shape.rot.y;
         heldActor->speed = 10.0f;
         heldActor->velocity.y = 20.0f;
-        func_808309CC(play, this);
+        Player_SetUpperIA(play, this);
         Player_PlaySfx(this, NA_SE_PL_THROW);
         Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_SWORD_N);
     }
@@ -16404,7 +16410,7 @@ void Player_Action_DropCarriedActor(Player* this, PlayState* play) {
         if (!Player_ActorIsNull(play, this, heldActor)) {
             heldActor->velocity.y = 0.0f;
             heldActor->speed = 0.0f;
-            func_808309CC(play, this);
+            Player_SetUpperIA(play, this);
             // Force player into first person if dropping a Bombchu
             if (heldActor->id == ACTOR_EN_BOM_CHU) {
                 func_80831814(this, play, PLAYER_UNKAA5_0);
@@ -17091,7 +17097,7 @@ void Player_Action_HorseRiding(Player* this, PlayState* play) {
                 }
 
                 if (animIndex < ENHORSE_ANIM_WALK) {
-                    func_808309CC(play, this);
+                    Player_SetUpperIA(play, this);
                     this->av1.actionVar1 = 0;
                 }
             }

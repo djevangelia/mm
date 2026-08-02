@@ -2323,13 +2323,13 @@ s32 Actor_HasNoRider(PlayState* play, Actor* horse) {
     return false;
 }
 
-void func_800B8D10(PlayState* play, Actor* actor, f32 arg2, s16 arg3, f32 arg4, s32 knockbackType, u32 arg6) {
+void func_800B8D10(PlayState* play, Actor* actor, f32 speed, s16 rot, f32 arg4, s32 type, u32 arg6) {
     Player* player = GET_PLAYER(play);
 
     player->unk_B74 = arg6;
-    player->knockbackType = knockbackType;
-    player->unk_B78 = arg2;
-    player->unk_B76 = arg3;
+    player->knockbackType = type;
+    player->knockbackSpeed = speed;
+    player->knockbackRot = rot;
     player->unk_B7C = arg4;
 }
 
