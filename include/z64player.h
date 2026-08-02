@@ -647,8 +647,8 @@ typedef struct PlayerAgeProperties {
     /* 0xA0 */ PlayerAnimationHeader* openChestAnim;
     /* 0xA4 */ PlayerAnimationHeader* timeTravelStartAnim; // OoT leftovers to interact with the Master Sword
     /* 0xA8 */ PlayerAnimationHeader* timeTravelEndAnim; // OoT leftovers to interact with the Master Sword
-    /* 0xAC */ PlayerAnimationHeader* unk_AC;
-    /* 0xB0 */ PlayerAnimationHeader* unk_B0;
+    /* 0xAC */ PlayerAnimationHeader* ladderMountBelowAnim; // Mounting ladders at the bottom
+    /* 0xB0 */ PlayerAnimationHeader* ladderMountTopAnim; // Mounting ladders at the top
     /* 0xB4 */ PlayerAnimationHeader* unk_B4[4];
     /* 0xC4 */ PlayerAnimationHeader* unk_C4[2];
     /* 0xCC */ PlayerAnimationHeader* dismountLadderDownAnim[2];

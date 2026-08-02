@@ -821,9 +821,9 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
         &gPlayerAnim_link_demo_back_to_past,
         // timeTravelEndAnim
         &gPlayerAnim_link_demo_return_to_past,
-        // unk_AC
+        // ladderMountBelowAnim
         &gPlayerAnim_link_normal_climb_startA,
-        // unk_B0
+        // ladderMountTopAnim
         &gPlayerAnim_link_normal_climb_startB,
         // unk_B4
         {
@@ -917,9 +917,9 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
         &gPlayerAnim_link_demo_back_to_past,
         // timeTravelEndAnim
         &gPlayerAnim_link_demo_return_to_past,
-        // unk_AC
+        // ladderMountBelowAnim
         &gPlayerAnim_pg_climb_startA,
-        // unk_B0
+        // ladderMountTopAnim
         &gPlayerAnim_pg_climb_startB,
         // unk_B4
         {
@@ -1013,9 +1013,9 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
         &gPlayerAnim_link_demo_back_to_past,
         // timeTravelEndAnim
         &gPlayerAnim_link_demo_return_to_past,
-        // unk_AC
+        // ladderMountBelowAnim
         &gPlayerAnim_pz_climb_startA,
-        // unk_B0
+        // ladderMountTopAnim
         &gPlayerAnim_pz_climb_startB,
         // unk_B4
         {
@@ -1109,9 +1109,9 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
         &gPlayerAnim_link_demo_back_to_past,
         // timeTravelEndAnim
         &gPlayerAnim_link_demo_return_to_past,
-        // unk_AC
+        // ladderMountBelowAnim
         &gPlayerAnim_clink_normal_climb_startA,
-        // unk_B0
+        // ladderMountTopAnim
         &gPlayerAnim_clink_normal_climb_startB,
         // unk_B4
         {
@@ -1205,9 +1205,9 @@ PlayerAgeProperties sPlayerAgeProperties[PLAYER_FORM_MAX] = {
         &gPlayerAnim_clink_demo_goto_future,
         // timeTravelEndAnim
         &gPlayerAnim_clink_demo_return_to_future,
-        // unk_AC
+        // ladderMountBelowAnim
         &gPlayerAnim_clink_normal_climb_startA,
-        // unk_B0
+        // ladderMountTopAnim
         &gPlayerAnim_clink_normal_climb_startB,
         // unk_B4
         {
@@ -3993,16 +3993,20 @@ void Player_UpdateItems(Player* this, PlayState* play) {
     }
 }
 
-// EN_ARROW ammo related?
-s32 func_808305BC(PlayState* play, Player* this, ItemId* item, ArrowType* typeParam) {
+/**
+ * Returns current ammo for Bow or flying Deku form Deku nuts.
+ */
+s32 Player_ReturnItemAmmo(PlayState* play, Player* this, ItemId* item, ArrowType* typeParam) {
     if (this->heldItemAction == PLAYER_IA_DEKU_NUT) {
         *item = ITEM_DEKU_NUT;
         *typeParam = (this->transformation == PLAYER_FORM_DEKU) ? ARROW_TYPE_DEKU_BUBBLE : ARROW_TYPE_SLINGSHOT;
     } else {
         *item = ITEM_BOW;
-        *typeParam = (this->stateFlags1 & PLAYER_STATE1_800000)
-                         ? ARROW_TYPE_NORMAL_HORSE
-                         : (this->heldItemAction - PLAYER_IA_BOW + ARROW_TYPE_NORMAL);
+        if (this->stateFlags1 & PLAYER_STATE1_800000) {
+            *typeParam = ARROW_TYPE_NORMAL_HORSE;
+        } else {
+            *typeParam = (this->heldItemAction - PLAYER_IA_BOW + ARROW_TYPE_NORMAL);
+        }
     }
 
     if (this->transformation == PLAYER_FORM_DEKU) {
@@ -4059,7 +4063,7 @@ s32 Player_Ranged_LoadWeapon(Player* this, PlayState* play) {
                 Player_PlaySfx(this, D_8085CFB0[var_v1 - 1]);
             }
 
-            if (!Player_IsHoldingHookshot(this) && (func_808305BC(play, this, &item, &arrowType) > 0)) {
+            if (!Player_IsHoldingHookshot(this) && (Player_ReturnItemAmmo(play, this, &item, &arrowType) > 0)) {
                 if (this->unk_B28 >= 0) {
                     magicArrowType = ARROW_GET_MAGIC_FROM_TYPE(arrowType);
 
@@ -4334,13 +4338,18 @@ bool Player_HookshotAvailable(PlayState* play, Player* this) {
     return false;
 }
 
-bool func_80831194(PlayState* play, Player* this) {
+/**
+ * Fires a loaded ranged weapon. Reduces ammo count, requests rumble,
+ * fixes actor-child relationships.
+ * @return true if successful firing, otherwise false
+ */
+bool Player_Ranged_FireWeapon(PlayState* play, Player* this) {
     if (this->heldActor != NULL) {
         if (!Player_IsHoldingHookshot(this)) {
             ItemId item;
             ArrowType arrowType;
 
-            func_808305BC(play, this, &item, &arrowType);
+            Player_ReturnItemAmmo(play, this, &item, &arrowType);
             if ((this->transformation != PLAYER_FORM_DEKU) && !(this->stateFlags3 & PLAYER_STATE3_400)) {
                 if (gSaveContext.minigameStatus == MINIGAME_STATUS_ACTIVE) {
                     if ((play->sceneId != SCENE_SYATEKI_MIZU) && (play->sceneId != SCENE_F01) &&
@@ -4358,8 +4367,10 @@ bool func_80831194(PlayState* play, Player* this) {
                 play->bButtonAmmoPlusOne = -10;
             }
 
+            // Bow fire rumble
             Player_RequestRumble(play, this, 150, 10, 150, SQ(0));
         } else {
+            // Hookshot fire rumble
             Player_RequestRumble(play, this, 255, 20, 150, SQ(0));
             this->unk_B48 = 0.0f;
         }
@@ -6185,23 +6196,28 @@ s32 func_80834600(Player* this, PlayState* play) {
                ((this->invincibilityTimer < 0) && (this->cylinder.base.acFlags & AC_HIT) &&
                 (this->cylinder.elem.acHitElem != NULL) &&
                 (this->cylinder.elem.acHitElem->atDmgInfo.dmgFlags != DMG_UNBLOCKABLE))) {
-        PlayerAnimationHeader* var_a2;
-        s32 sp64;
+        PlayerAnimationHeader* anim;
+        s32 crouchShielding;
 
         Player_RequestRumble(play, this, 180, 20, 100, SQ(0));
+
         if ((this->invincibilityTimer >= 0) && !Player_IsGoronOrDeku(this)) {
-            sp64 = (Player_Action_ShieldCrouch == this->actionFunc);
+            crouchShielding = (Player_Action_ShieldCrouch == this->actionFunc);
             if (!func_801242B4(this)) {
                 Player_SetAction(play, this, Player_Action_ShieldBlock, 0);
             }
 
-            this->av1.actionVar1 = sp64;
-            if ((s8)sp64 == 0) {
+            this->av1.crouchShielding = crouchShielding;
+            if (!(s8)crouchShielding) {
                 Player_SetUpperAction(play, this, Player_UpperAction_ShieldWaitForBlockAnim);
-                var_a2 = (this->forwardFootWeight < 0.5f) ? D_8085CFD4[Player_IsHoldingTwoHandedWeapon(this)]
-                                                : D_8085CFCC[Player_IsHoldingTwoHandedWeapon(this)];
-                PlayerAnimation_PlayOnce(play, &this->skelAnimeUpper, var_a2);
-            } else {
+
+                if (this->forwardFootWeight < 0.5f) {
+                    anim = D_8085CFD4[Player_IsHoldingTwoHandedWeapon(this)];
+                } else {
+                    anim = D_8085CFCC[Player_IsHoldingTwoHandedWeapon(this)];
+                }
+                PlayerAnimation_PlayOnce(play, &this->skelAnimeUpper, anim);
+            } else { // Crouch shielding without target
                 Player_Anim_PlayOnce(play, this, D_8085CFDC[Player_IsHoldingTwoHandedWeapon(this)]);
             }
         }
@@ -6212,45 +6228,47 @@ s32 func_80834600(Player* this, PlayState* play) {
         }
 
         return false;
+    // Cannot take damage during these conditions
     } else if ((this->postReviveFrames != 0) || (this->invincibilityTimer > 0) || (this->stateFlags1 & PLAYER_STATE1_4000000) ||
                (this->csAction != PLAYER_CSACTION_NONE) || (this->meleeWeaponQuads[0].base.atFlags & AT_HIT) ||
                (this->meleeWeaponQuads[1].base.atFlags & AT_HIT) || (this->cylinder.base.atFlags & AT_HIT) ||
                (this->shieldCylinder.base.atFlags & AT_HIT)) {
         return false;
+    // Taken AC hit
     } else if (this->cylinder.base.acFlags & AC_HIT) {
-        Actor* sp60 = this->cylinder.base.ac;
-        s32 var_a2_2;
+        Actor* acActor = this->cylinder.base.ac;
+        s32 hitResponseType;
 
-        if (sp60->flags & ACTOR_FLAG_SFX_FOR_PLAYER_BODY_HIT) {
+        if (acActor->flags & ACTOR_FLAG_SFX_FOR_PLAYER_BODY_HIT) {
             Player_PlaySfx(this, NA_SE_PL_BODY_HIT);
         }
 
         if (this->actor.colChkInfo.acHitEffect == 2) {
-            var_a2_2 = 3;
+            hitResponseType = 3;
         } else if (this->actor.colChkInfo.acHitEffect == 3) {
-            var_a2_2 = 4;
+            hitResponseType = 4;
         } else if (this->actor.colChkInfo.acHitEffect == 7) {
-            var_a2_2 = 1;
+            hitResponseType = 1;
             this->bodyShockTimer = 40;
         } else if (this->actor.colChkInfo.acHitEffect == 9) {
-            var_a2_2 = 1;
+            hitResponseType = 1;
             if (func_80834534(play, this)) {
                 return true;
             }
 
         } else if (((this->actor.colChkInfo.acHitEffect == 4) && (this->currentMask != PLAYER_MASK_GIANT)) ||
                    (this->stateFlags3 & PLAYER_STATE3_1000)) {
-            var_a2_2 = 1;
+            hitResponseType = 1;
         } else {
-            var_a2_2 = 0;
+            hitResponseType = 0;
             if (func_8083456C(play, this)) {
                 return true;
             }
         }
-        Player_HandleDamageHitResponse(play, this, var_a2_2, 4.0f, 5.0f, Actor_WorldYawTowardActor(sp60, &this->actor), 20);
+        Player_HandleDamageHitResponse(play, this, hitResponseType, 4.0f, 5.0f, Actor_WorldYawTowardActor(acActor, &this->actor), 20);
     } else if (this->invincibilityTimer != 0) {
         return false;
-    } else {
+    } else { // Floor and wall damage
         s32 sp58 = Player_IsDamageFloor(sPlayerFloorType);
         u32 isSurfaceWallDamage = SurfaceType_IsWallDamage(&play->colCtx, this->actor.floorPoly, this->actor.floorBgId);
         s32 var_a1 = false;
@@ -6273,7 +6291,7 @@ s32 func_80834600(Player* this, PlayState* play) {
             func_80834534(play, this);
         } else {
             this->actor.colChkInfo.damage = 4;
-            Player_HandleDamageHitResponse(play, this, (var_v1_2 == BGCHECK_SCENE) ? 0 : 1, 4.0f, 5.0f,
+            Player_HandleDamageHitResponse(play, this, (var_v1_2 == BGCHECK_SCENE) ? PLAYER_HIT_RESPONSE_NONE : 1, 4.0f, 5.0f,
                           var_a1 ? this->actor.wallYaw : this->actor.shape.rot.y, 20);
             return true;
         }
@@ -9807,10 +9825,10 @@ s32 func_8083D860(Player* this, PlayState* play) {
     if ((this->yDistToLedge >= 79.0f) &&
         (!(this->stateFlags1 & PLAYER_STATE1_IN_WATER) || (this->currentBoots == PLAYER_BOOTS_ZORA_UNDERWATER) ||
          (this->actor.depthInWater < this->ageProperties->unk_2C))) {
-        s32 var_t0 = (sPlayerTouchedWallFlags & WALL_FLAG_3) ? 2 : 0;
-        s32 temp_t2 = sPlayerTouchedWallFlags & WALL_FLAG_1;
+        s32 climbable = (sPlayerTouchedWallFlags & WALL_FLAG_3) ? 2 : 0;
+        s32 ladder = sPlayerTouchedWallFlags & WALL_FLAG_1;
 
-        if ((var_t0 != 0) || temp_t2 ||
+        if (climbable || ladder ||
             SurfaceType_CheckWallFlag2(&play->colCtx, this->actor.wallPoly, this->actor.wallBgId)) {
             CollisionPoly* wallPoly = this->actor.wallPoly;
             f32 sp78;
@@ -9824,7 +9842,7 @@ s32 func_8083D860(Player* this, PlayState* play) {
             f32 xOut;
 
             yOut = xOut = 0.0f;
-            if (var_t0 != 0) {
+            if (climbable) {
                 sp78 = this->actor.world.pos.x;
                 sp74 = this->actor.world.pos.z;
             } else {
@@ -9865,6 +9883,7 @@ s32 func_8083D860(Player* this, PlayState* play) {
                 xOut = fabsf(xOut);
             }
 
+            // Start climbing wall/ladder
             if (xOut < 8.0f) {
                 f32 wallPolyNormalX = COLPOLY_GET_NORMAL(wallPoly->normal.x);
                 f32 wallPolyNormalZ = COLPOLY_GET_NORMAL(wallPoly->normal.z);
@@ -9876,26 +9895,25 @@ s32 func_8083D860(Player* this, PlayState* play) {
                 this->stateFlags1 |= PLAYER_STATE1_CLIMBING;
                 this->stateFlags1 &= ~PLAYER_STATE1_IN_WATER;
 
-                if ((var_t0 != 0) || temp_t2) {
-                    if ((this->av1.actionVar1 = var_t0) != 0) {
+                if (climbable || ladder) {
+                    if ((this->av1.actionVar1 = climbable)) {
                         if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
-                            anim = &gPlayerAnim_link_normal_Fclimb_startA;
+                            anim = &gPlayerAnim_link_normal_Fclimb_startA; // Climb from ground
 
                         } else {
-                            anim = &gPlayerAnim_link_normal_Fclimb_hold2upL;
+                            anim = &gPlayerAnim_link_normal_Fclimb_hold2upL; // Grabbing wall while falling
                         }
                         distToInteractWall = (this->ageProperties->unk_3C + 4.0f) - distToInteractWall;
-                    } else {
-                        anim = this->ageProperties->unk_AC;
+                    } else { // Climb ladder from below
+                        anim = this->ageProperties->ladderMountBelowAnim;
                         distToInteractWall = 20.5f;
                     }
 
                     this->av2.actionVar2 = -2;
                     this->actor.world.pos.y += yOut;
-
                     this->actor.shape.rot.y = this->yaw = this->actor.wallYaw + 0x8000;
-                } else {
-                    anim = this->ageProperties->unk_B0;
+                } else { // Climb ladder from top
+                    anim = this->ageProperties->ladderMountTopAnim;
                     distToInteractWall = (this->ageProperties->wallCheckRadius - this->ageProperties->unk_3C) + 17.0f;
                     this->av2.actionVar2 = -4;
 
@@ -14237,7 +14255,7 @@ s32 Player_UpperAction_RangedLoaded(Player* this, PlayState* play) {
         Player_SetUpperAction(play, this, Player_UpperAction_RangedNotLoaded);
         if (this->unk_B28 >= 0) {
             if (index != 0) {
-                if (!func_80831194(play, this)) {
+                if (!Player_Ranged_FireWeapon(play, this)) {
                     Player_PlaySfx(this, D_8085D5FC[this->unk_B28 - 1]);
                 }
 
@@ -14246,7 +14264,7 @@ s32 Player_UpperAction_RangedLoaded(Player* this, PlayState* play) {
                                                      PLAYER_ANIM_ADJUSTED_SPEED);
                 }
             } else if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
-                func_80831194(play, this);
+                Player_Ranged_FireWeapon(play, this);
             }
         }
         this->rangedAimingOrLoaded = 0xA;
