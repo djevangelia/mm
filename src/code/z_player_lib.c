@@ -366,13 +366,13 @@ void func_80122F28(Player* player) {
 bool Player_IsBackJumping(PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    return (player->stateFlags2 & PLAYER_STATE2_80000) && (player->av1.actionVar1 == 2);
+    return (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP) && (player->av1.actionVar1 == 2);
 }
 
 bool Player_IsSideJumping(PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    return (player->stateFlags2 & PLAYER_STATE2_80000) &&
+    return (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP) &&
            ((player->av1.actionVar1 == 1) || (player->av1.actionVar1 == 3));
 }
 

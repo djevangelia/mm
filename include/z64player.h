@@ -1030,8 +1030,8 @@ typedef enum PlayerCueId {
 #define PLAYER_STATE2_20000      (1 << 17)
 // 
 #define PLAYER_STATE2_40000      (1 << 18)
-// 
-#define PLAYER_STATE2_80000      (1 << 19)
+// Making a sidehop or a backflip (also: MM Deku?)
+#define PLAYER_STATE2_SIDEHOP_BACKFLIP      (1 << 19)
 // 
 #define PLAYER_STATE2_100000     (1 << 20)
 // 
@@ -1090,8 +1090,8 @@ typedef enum PlayerCueId {
 #define PLAYER_STATE3_4000       (1 << 14)
 // Swimming Zora
 #define PLAYER_STATE3_8000       (1 << 15)
-// 
-#define PLAYER_STATE3_10000      (1 << 16)
+// Landing after Hookshot fly (STATE1_2 in OoT)
+#define PLAYER_STATE3_HOOKSHOT_LAND      (1 << 16)
 // 
 #define PLAYER_STATE3_20000      (1 << 17)
 // Related to form Deku

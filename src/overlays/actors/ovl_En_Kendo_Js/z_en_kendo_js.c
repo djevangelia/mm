@@ -390,7 +390,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((player->meleeWeaponState != PLAYER_MELEE_WEAPON_STATE_0) ||
-                (player->stateFlags3 & PLAYER_STATE3_8000000) || (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags3 & PLAYER_STATE3_8000000) || (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 return ENKENDOJS_RESULT_INCORRECT;
             }
             break;
@@ -401,7 +401,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((player->meleeWeaponState != PLAYER_MELEE_WEAPON_STATE_0) ||
-                (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 return ENKENDOJS_RESULT_INCORRECT;
             }
             break;
@@ -412,7 +412,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((player->meleeWeaponState != PLAYER_MELEE_WEAPON_STATE_0) ||
-                (player->stateFlags3 & PLAYER_STATE3_8000000) || (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags3 & PLAYER_STATE3_8000000) || (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 return ENKENDOJS_RESULT_INCORRECT;
             }
             this->isSlashingLog = false;
@@ -426,7 +426,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((this->isSlashingLog == true) || (player->stateFlags3 & PLAYER_STATE3_8000000) ||
-                (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 this->isSlashingLog = false;
                 return ENKENDOJS_RESULT_INCORRECT;
             }
@@ -440,7 +440,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((this->isSlashingLog == true) || (player->stateFlags3 & PLAYER_STATE3_8000000) ||
-                (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 this->isSlashingLog = false;
                 return ENKENDOJS_RESULT_INCORRECT;
             }
@@ -453,7 +453,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((this->isSlashingLog == true) || (player->stateFlags3 & PLAYER_STATE3_8000000) ||
-                (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 this->isSlashingLog = false;
                 return ENKENDOJS_RESULT_INCORRECT;
             }
@@ -467,7 +467,7 @@ s32 EnKendoJs_GetNoviceCourseActionResult(EnKendoJs* this, PlayState* play) {
             }
 
             if ((this->isSlashingLog == true) || (player->stateFlags3 & PLAYER_STATE3_8000000) ||
-                (player->stateFlags2 & PLAYER_STATE2_80000)) {
+                (player->stateFlags2 & PLAYER_STATE2_SIDEHOP_BACKFLIP)) {
                 this->isSlashingLog = false;
                 return ENKENDOJS_RESULT_INCORRECT;
             }
