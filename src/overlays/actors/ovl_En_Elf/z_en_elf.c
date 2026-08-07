@@ -1143,7 +1143,7 @@ void func_8088F214(EnElf* this, PlayState* play) {
         } else if ((tatlHoverActor == NULL) || (tatlHoverActor->category == ACTORCAT_NPC)) {
             if (tatlHoverActor != NULL) {
                 this->unk_25C = 100;
-                player->stateFlags2 |= PLAYER_STATE2_100000;
+                player->stateFlags2 |= PLAYER_STATE2_TATL_ACTIVE;
                 sp34 = 0;
             } else {
                 switch (this->unk_244) {
@@ -1167,7 +1167,7 @@ void func_8088F214(EnElf* this, PlayState* play) {
                                 this->unk_24A--;
                                 sp34 = 5;
                             } else {
-                                player->stateFlags2 |= PLAYER_STATE2_100000;
+                                player->stateFlags2 |= PLAYER_STATE2_TATL_ACTIVE;
                                 sp34 = 0;
                             }
                         } else {
@@ -1199,7 +1199,7 @@ void func_8088F214(EnElf* this, PlayState* play) {
 
         switch (sp34) {
             case 0:
-                if (!(player->stateFlags2 & PLAYER_STATE2_100000)) {
+                if (!(player->stateFlags2 & PLAYER_STATE2_TATL_ACTIVE)) {
                     sp34 = 5;
                     if (this->unk_269 == 0) {
                         Actor_PlaySfx(&this->actor, NA_SE_EV_NAVY_VANISH);
@@ -1208,25 +1208,25 @@ void func_8088F214(EnElf* this, PlayState* play) {
                 break;
 
             case 6:
-                if (player->stateFlags2 & PLAYER_STATE2_100000) {
+                if (player->stateFlags2 & PLAYER_STATE2_TATL_ACTIVE) {
                     sp34 = 9;
                     this->unk_25C = 0x2A;
                     if (this->unk_269 == 0) {
                         Actor_PlaySfx(&this->actor, NA_SE_EV_BELL_DASH_NORMAL);
                     }
                 } else if (player->stateFlags1 & PLAYER_STATE1_TALKING) {
-                    player->stateFlags2 |= PLAYER_STATE2_100000;
+                    player->stateFlags2 |= PLAYER_STATE2_TATL_ACTIVE;
                     sp34 = 0;
                     this->unk_25C = 0;
                 }
                 break;
 
             case 5:
-                player->stateFlags2 &= ~PLAYER_STATE2_100000;
+                player->stateFlags2 &= ~PLAYER_STATE2_TATL_ACTIVE;
                 break;
 
             default:
-                player->stateFlags2 |= PLAYER_STATE2_100000;
+                player->stateFlags2 |= PLAYER_STATE2_TATL_ACTIVE;
                 break;
         }
     }

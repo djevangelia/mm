@@ -1032,8 +1032,8 @@ typedef enum PlayerCueId {
 #define PLAYER_STATE2_40000      (1 << 18)
 // Making a sidehop or a backflip (also: MM Deku?)
 #define PLAYER_STATE2_SIDEHOP_BACKFLIP      (1 << 19)
-// 
-#define PLAYER_STATE2_100000     (1 << 20)
+// Tatl is visible and active. Could be hovering idle near Link or hovering over other actors.
+#define PLAYER_STATE2_TATL_ACTIVE     (1 << 20)
 // 
 #define PLAYER_STATE2_200000     (1 << 21)
 // 
