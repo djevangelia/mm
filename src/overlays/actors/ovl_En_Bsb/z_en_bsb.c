@@ -898,7 +898,7 @@ void func_80C0CDE4(EnBsb* this, PlayState* play) {
     dist = sqrtf((SQ(dx) + SQ(dy)) + SQ(dz));
 
     if ((this->collider.base.atFlags & AT_BOUNCED) ||
-        ((player->stateFlags1 & PLAYER_STATE1_400000) && (dist <= 70.0f) &&
+        ((player->stateFlags1 & PLAYER_STATE1_SHIELDING) && (dist <= 70.0f) &&
          (BINANG_ROT180(player->actor.shape.rot.y - this->actor.shape.rot.y) < 0x2000) &&
          (BINANG_ROT180(player->actor.shape.rot.y - this->actor.shape.rot.y) > -0x2000))) {
         this->collider.base.atFlags &= ~(AT_BOUNCED | AT_HIT);

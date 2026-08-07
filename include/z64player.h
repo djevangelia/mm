@@ -970,8 +970,8 @@ typedef enum PlayerCueId {
 #define PLAYER_STATE1_100000     (1 << 20)
 // 
 #define PLAYER_STATE1_CLIMBING     (1 << 21)
-// 
-#define PLAYER_STATE1_400000     (1 << 22)
+// Shielding in any form (regular, "shielding" with a two handed sword, etc.)
+#define PLAYER_STATE1_SHIELDING     (1 << 22)
 // 
 #define PLAYER_STATE1_800000     (1 << 23)
 // Currently using the zora boomerang. This includes all phases (aiming, throwing, and catching).
@@ -1453,7 +1453,7 @@ PlayerModelGroup Player_ActionToModelGroup(Player* player, PlayerItemAction item
 void Player_SetModelsForHoldingShield(Player* player);
 void Player_SetModels(Player* player, PlayerModelGroup modelGroup);
 void Player_SetModelGroup(Player* player, PlayerModelGroup modelGroup);
-void func_80123C58(Player* player);
+void Player_RestoreHeldIA(Player* player);
 void Player_SetEquipmentData(struct PlayState* play, Player* player);
 void Player_UpdateBottleHeld(struct PlayState* play, Player* player, ItemId itemId, PlayerItemAction itemAction);
 void Player_ReleaseLockOn(Player* player);

@@ -2863,7 +2863,7 @@ void Boss07_Wrath_CheckWhipCollisions(Vec3f* whipPos, f32 tension, Boss07* this,
                         this->rightWhip.tension = 0.0f;
                         Audio_PlaySfx(NA_SE_EN_LAST3_GET_LINK_OLD);
                     }
-                } else if ((player->stateFlags1 & PLAYER_STATE1_400000) && Boss07_ArePlayerAndActorFacing(this, play)) {
+                } else if ((player->stateFlags1 & PLAYER_STATE1_SHIELDING) && Boss07_ArePlayerAndActorFacing(this, play)) {
                     player->pushedSpeed = 10.0f;
                     player->pushedYaw = this->actor.yawTowardsPlayer;
                     Audio_PlaySfx(NA_SE_IT_SHIELD_BOUND);
@@ -5512,13 +5512,13 @@ void Boss07_Mask_FireBeam(Boss07* this, PlayState* play) {
     Math_ApproachF(&this->actor.world.pos.y, 300.0f, 0.05f, 1.0f);
     Math_ApproachS(&this->actor.shape.rot.z, 0, 0xA, 0x400);
 
-    if ((player->focusActor != NULL) && (player->stateFlags1 & PLAYER_STATE1_400000)) {
+    if ((player->focusActor != NULL) && (player->stateFlags1 & PLAYER_STATE1_SHIELDING)) {
         yOffset = (player->transformation == PLAYER_FORM_HUMAN) ? 20 : 30.0f;
     } else {
         yOffset = (player->transformation == PLAYER_FORM_HUMAN) ? 8.0f : 15.0f;
     }
 
-    rotScale = (player->stateFlags1 & PLAYER_STATE1_400000) ? 1 : 10;
+    rotScale = (player->stateFlags1 & PLAYER_STATE1_SHIELDING) ? 1 : 10;
     Math_ApproachS(&this->actor.shape.rot.y, this->actor.yawTowardsPlayer, rotScale, this->speedToTarget);
     dx = player->actor.world.pos.x - this->actor.world.pos.x;
     dy = player->actor.world.pos.y - this->actor.world.pos.y + yOffset;
@@ -5604,7 +5604,7 @@ void Boss07_Mask_FireBeam(Boss07* this, PlayState* play) {
             if ((fabsf(transformedDiff.x) < 20.0f) && (fabsf(transformedDiff.y) < 50.0f) &&
                 (transformedDiff.z > 40.0f) && (transformedDiff.z <= (this->beamLengthScale * 20))) {
                 if (Player_HasMirrorShieldEquipped(play) && (player->transformation == PLAYER_FORM_HUMAN) &&
-                    (player->stateFlags1 & PLAYER_STATE1_400000) &&
+                    (player->stateFlags1 & PLAYER_STATE1_SHIELDING) &&
                     (BINANG_ROT180(player->actor.shape.rot.y - this->actor.shape.rot.y) < 0x2000) &&
                     (BINANG_ROT180(player->actor.shape.rot.y - this->actor.shape.rot.y) > -0x2000)) {
                     Vec3s reflectedBeamRot;
