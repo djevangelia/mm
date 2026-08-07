@@ -4497,7 +4497,7 @@ s32 Camera_KeepOn4(Camera* camera) {
                 break;
         }
 
-        focalActorHeight = Camera_GetFocalActorHeight(camera) - (player->unk_AB8 * camera->focalActor->scale.y);
+        focalActorHeight = Camera_GetFocalActorHeight(camera) - (player->quicksandEffect * camera->focalActor->scale.y);
     } else {
         camMode = CAM_MODE_NORMAL;
         focalActorHeight = Camera_GetFocalActorHeight(camera);

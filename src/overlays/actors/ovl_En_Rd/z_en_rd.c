@@ -1176,7 +1176,7 @@ void EnRd_UpdateDamage(EnRd* this, PlayState* play) {
         Actor_SetDropFlag(&this->actor, &this->collider.elem);
 
         if (player->unk_ADC != 0) {
-            this->unk_3F1 = player->unk_ADD;
+            this->unk_3F1 = player->tripleSlashCount;
         }
 
         switch (this->damageEffect) {
@@ -1245,7 +1245,7 @@ void EnRd_UpdateCollision(EnRd* this, PlayState* play) {
     if ((this->actor.colChkInfo.health > 0) && (this->action != EN_RD_ACTION_GRABBING)) {
         Collider_UpdateCylinder(&this->actor, &this->collider);
         CollisionCheck_SetOC(play, &play->colChkCtx, &this->collider.base);
-        if (((this->action != EN_RD_ACTION_DAMAGE) || ((player->unk_ADC != 0) && (player->unk_ADD != this->unk_3F1))) &&
+        if (((this->action != EN_RD_ACTION_DAMAGE) || ((player->unk_ADC != 0) && (player->tripleSlashCount != this->unk_3F1))) &&
             ((this->actionFunc != EnRd_Stunned) || (this->stunTimer == 0))) {
             CollisionCheck_SetAC(play, &play->colChkCtx, &this->collider.base);
         }

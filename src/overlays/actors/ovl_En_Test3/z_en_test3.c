@@ -1273,7 +1273,7 @@ s32 EnTest3_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f*
             (this->player.skelAnime.movementFlags & ANIM_FLAG_UPDATE_Y)) {
             pos->y *= this->player.ageProperties->unk_08;
         }
-        pos->y -= this->player.unk_AB8;
+        pos->y -= this->player.quicksandEffect;
         if (this->player.unk_AAA != 0) {
 
             Matrix_Translate(pos->x, ((Math_CosS(this->player.unk_AAA) - 1.0f) * 200.0f) + pos->y, pos->z,

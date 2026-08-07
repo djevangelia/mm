@@ -1027,7 +1027,7 @@ void EnTalkGibud_UpdateDamage(EnTalkGibud* this, PlayState* play) {
             case EN_TALK_GIBUD_DMGEFF_DAMAGE:
                 Actor_SetColorFilter(&this->actor, COLORFILTER_COLORFLAG_RED, 255, COLORFILTER_BUFFLAG_OPA, 8);
                 if (player->unk_ADC != 0) {
-                    this->unk_3F7 = player->unk_ADD;
+                    this->unk_3F7 = player->tripleSlashCount;
                 }
                 this->actor.shape.yOffset = 0.0f;
                 if (this->actor.colChkInfo.health == 0) {
@@ -1101,7 +1101,7 @@ void EnTalkGibud_UpdateCollision(EnTalkGibud* this, PlayState* play) {
             Collider_UpdateCylinder(&this->actor, &this->collider);
             CollisionCheck_SetOC(play, &play->colChkCtx, &this->collider.base);
             if (((this->actionFunc != EnTalkGibud_Damage) ||
-                 ((player->unk_ADC != 0) && (player->unk_ADD != this->unk_3F7))) &&
+                 ((player->unk_ADC != 0) && (player->tripleSlashCount != this->unk_3F7))) &&
                 ((this->actionFunc != EnTalkGibud_Stunned) || (this->stunTimer == 0))) {
                 CollisionCheck_SetAC(play, &play->colChkCtx, &this->collider.base);
             }
